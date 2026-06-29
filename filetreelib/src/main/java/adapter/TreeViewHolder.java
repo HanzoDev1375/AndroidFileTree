@@ -54,12 +54,10 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       boolean isCut,
       boolean selectionMode) {
 
-    // RTL-safe indent: فقط عرض تنظیم میشه، جهت را LinearLayout خودش handle میکنه
-    int indentPx = theme.getIndentWidthPx() * (node.getDepth() + 1);
+    int indentPx = theme.getIndentWidthPx() * node.getDepth();
     ViewGroup.LayoutParams lp = indentSpacer.getLayoutParams();
     lp.width = indentPx;
     indentSpacer.setLayoutParams(lp);
-
     if (selectionMode) {
       checkbox.setVisibility(View.VISIBLE);
       checkbox.setChecked(node.isSelected());

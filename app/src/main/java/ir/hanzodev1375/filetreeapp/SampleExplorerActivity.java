@@ -506,21 +506,46 @@ public class SampleExplorerActivity extends AppCompatActivity {
         .show();
   }
 
-  // -------------------------------------------------------------------------
-  // Search
-  // -------------------------------------------------------------------------
+  private List<TreeNode> fullVisibleSnapshot = null; // snapshot قبل از filter
 
   private void performSearch(@NonNull String query) {
     if (query.isEmpty()) {
-      if (adapter != null) adapter.clearSearch();
+      // برگشت به لیست کامل
+      if (adapter != null) {
+        adapter.clearSearch();
+        if (fullVisibleSnapshot != null) {
+          adapter.submitNewList(fullVisibleSnapshot);
+          fullVisibleSnapshot = null;
+        } else {
+          adapter.submitNewList(controller.getVisibleList().snapshot());
+        }
+      }
       return;
     }
+
+    // snapshot اولین بار ذخیره کن
+    if (fullVisibleSnapshot == null) {
+      fullVisibleSnapshot = new ArrayList<>(controller.getVisibleList().snapshot());
+    }
+
     searchExecutor.submit(
         () -> {
           List<SearchResult> results = searchEngine.search(controller.getModel().getRoot(), query);
+
+          // ID های match شده
+          java.util.Set<String> matchingIds = new java.util.HashSet<>();
+          for (SearchResult r : results) matchingIds.add(r.getNodeId());
+
+          // فیلتر کن — ancestor ها هم نشون داده میشن
+          List<TreeNode> filteredList =
+              treeFilter.filter(controller.getModel().getRoot(), matchingIds);
+
           runOnUiThread(
               () -> {
-                if (adapter != null) adapter.setSearchResults(results);
+                if (adapter != null) {
+                  adapter.setSearchResults(results);
+                  adapter.submitNewList(filteredList);
+                }
               });
         });
   }

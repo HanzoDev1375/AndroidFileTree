@@ -11,8 +11,8 @@ import ir.hanzodev1375.filetreelib.core.TreeNode;
 import ir.hanzodev1375.filetreelib.model.FilePayload;
 import ir.hanzodev1375.filetreelib.utils.TreeUtils;
 
-/** Default icon provider. Maps node type and file extension to built-in drawables. */
-public class DefaultIconProvider implements IconProvider {
+public class DefaultIconProvider extends BaseIconProvider {
+
   private FileIconHelper icon;
 
   @Nullable
@@ -20,10 +20,8 @@ public class DefaultIconProvider implements IconProvider {
   public Drawable getIcon(@NonNull Context context, @NonNull TreeNode node) {
     if (node.isLoadingPlaceholder()) return null;
     if (node.isFolder()) {
-      return ContextCompat.getDrawable(
-          context, R.drawable.ic_filetree_folder);
+      return ContextCompat.getDrawable(context, R.drawable.ic_filetree_folder);
     }
-    // File: choose by extension
     FilePayload payload = node.getPayload(FilePayload.class);
     String ext = payload != null ? payload.getExtension() : TreeUtils.getExtension(node.getName());
     icon = new FileIconHelper(ext);

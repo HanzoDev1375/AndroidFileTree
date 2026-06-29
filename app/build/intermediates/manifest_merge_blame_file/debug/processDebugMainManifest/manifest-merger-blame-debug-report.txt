@@ -46,8 +46,8 @@
 28-->/storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:11:9-41
 29        android:roundIcon="@mipmap/ic_launcher_round"
 29-->/storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:12:9-54
-30        android:supportsRtl="true"
-30-->/storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:13:9-35
+30        android:supportsRtl="false"
+30-->/storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:13:9-36
 31        android:theme="@style/AppTheme" >
 31-->/storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:14:9-40
 32        <activity

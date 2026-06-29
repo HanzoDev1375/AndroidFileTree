@@ -104,7 +104,7 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /data/user/
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.17.0] /data/user/0/com.tom.rv2ide/files/home/.gradle/caches/9.0.0/transforms/9a3fdf6155be2193307becaa27293e76/transformed/core-1.17.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:13:9-35
+		ADDED from /storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:13:9-36
 	android:label
 		ADDED from /storage/emulated/0/AndroidIDEProjects/FileTree/app/src/main/AndroidManifest.xml:11:9-41
 	android:roundIcon
