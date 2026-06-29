@@ -42,7 +42,7 @@ dependencyResolutionManagement {
 
 ```gradle
 	dependencies {
-	        implementation 'com.github.HanzoDev1375:AndroidFileTree:-92e0ed50a3-1'
+	        implementation 'com.github.HanzoDev1375:AndroidFileTree:1.0.0'
 	}
 ```
 
