@@ -5,6 +5,8 @@ import androidx.annotation.WorkerThread;
 import ir.hanzodev1375.filetreelib.core.TreeNode;
 import ir.hanzodev1375.filetreelib.model.FilePayload;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -125,7 +127,9 @@ public class FileTreeProvider implements TreeDataProvider {
       if (sp == null) continue;
       File src = new File(sp.getAbsolutePath());
       File dst = new File(dp.getAbsolutePath(), src.getName());
-      copyRecursive(src, dst);
+      if (!src.renameTo(dst)) {
+        copyRecursive(src, dst);
+      }
     }
   }
 
@@ -167,8 +171,8 @@ public class FileTreeProvider implements TreeDataProvider {
       File[] children = src.listFiles();
       if (children != null) for (File c : children) copyRecursive(c, new File(dst, c.getName()));
     } else {
-      java.io.FileInputStream in = new java.io.FileInputStream(src);
-      java.io.FileOutputStream out = new java.io.FileOutputStream(dst);
+      var in = new FileInputStream(src);
+      var out = new FileOutputStream(dst);
       byte[] buf = new byte[8192];
       int n;
       try {
@@ -178,5 +182,44 @@ public class FileTreeProvider implements TreeDataProvider {
         out.close();
       }
     }
+  }
+
+  @WorkerThread
+  @NonNull
+  @Override
+  public List<TreeNode> pasteNodes(
+      @NonNull TreeNode destination, @NonNull List<TreeNode> nodes, boolean isCut)
+      throws Exception {
+    FilePayload dp = destination.getPayload(FilePayload.class);
+    if (dp == null) throw new IllegalStateException("No FilePayload on destination");
+    List<TreeNode> result = new ArrayList<>();
+    for (TreeNode node : nodes) {
+      FilePayload sp = node.getPayload(FilePayload.class);
+      if (sp == null) continue;
+      File src = new File(sp.getAbsolutePath());
+      File dst = new File(dp.getAbsolutePath(), src.getName());
+      if (isCut) {
+        if (!src.renameTo(dst)) {
+          copyRecursive(src, dst);
+          deleteRecursive(src);
+        }
+      } else {
+        copyRecursive(src, dst);
+      }
+      boolean isDir = dst.isDirectory();
+      FilePayload ep =
+          new FilePayload.Builder(dst.getAbsolutePath(), isDir)
+              .size(isDir ? -1 : dst.length())
+              .lastModified(dst.lastModified())
+              .build();
+      result.add(
+          new TreeNode.Builder(dst.getName())
+              .setId(dst.getAbsolutePath())
+              .setType(isDir ? TreeNode.TYPE_FOLDER : TreeNode.TYPE_FILE)
+              .setHasChildren(isDir && hasAnyChild(dst))
+              .setPayload(ep)
+              .build());
+    }
+    return result;
   }
 }

@@ -49,4 +49,25 @@ public interface TreeDataProvider {
   /** Moves nodes to the destination parent. Called on a background thread. */
   @WorkerThread
   void moveNodes(@NonNull List<TreeNode> nodes, @NonNull TreeNode destination) throws Exception;
+
+  /**
+   * Copies or moves {@code nodes} into {@code destination}. Called on a background thread.
+   *
+   * <p>For a FILE-SYSTEM implementation:
+   *
+   * <ul>
+   *   <li>COPY — duplicate each file/folder under {@code destination}
+   *   <li>MOVE (isCut) — rename/move each file/folder under {@code destination}
+   * </ul>
+   *
+   * @param destination the target folder node
+   * @param nodes the nodes to paste (from clipboard)
+   * @param isCut true = move, false = copy
+   * @return list of newly created {@link TreeNode}s ready to be inserted in the model
+   * @throws Exception on any I/O failure
+   */
+  @WorkerThread
+  @NonNull
+  List<TreeNode> pasteNodes(
+      @NonNull TreeNode destination, @NonNull List<TreeNode> nodes, boolean isCut) throws Exception;
 }
