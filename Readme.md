@@ -26,11 +26,26 @@ A production-ready Android TreeView library for building modern file explorers s
 
 # Installation
 
+### add `settings.gradle`
+
 ```gradle
-implementation project(":filetreelib")
+dependencyResolutionManagement {
+		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+		repositories {
+			mavenCentral()
+			maven { url 'https://jitpack.io' }
+		}
+	}
+
 ```
 
-Or publish the library to Maven/JitPack and add it as a dependency.
+
+```gradle
+	dependencies {
+	        implementation 'com.github.HanzoDev1375:AndroidFileTree:-92e0ed50a3-1'
+	}
+```
+
 
 ---
 
