@@ -50,6 +50,8 @@ public final class TreeView extends RecyclerView {
     init(context, attrs);
   }
 
+  private int screenWidth = 0;
+
   private void init(@NonNull Context context, @Nullable AttributeSet attrs) {
     if (attrs != null) {
       TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TreeView);
@@ -58,6 +60,8 @@ public final class TreeView extends RecyclerView {
       animDuration = a.getInt(R.styleable.TreeView_tv_animateDuration, 180);
       a.recycle();
     }
+
+    screenWidth = context.getResources().getDisplayMetrics().widthPixels;
 
     setLayoutManager(new LinearLayoutManager(context) {
       @Override
@@ -78,6 +82,20 @@ public final class TreeView extends RecyclerView {
       }
     });
     setHasFixedSize(false);
+
+    // Force each item to be at least as wide as the screen.
+    addOnChildAttachStateChangeListener(new OnChildAttachStateChangeListener() {
+      @Override
+      public void onChildViewAttachedToWindow(@NonNull View view) {
+        int minW = Math.max(screenWidth, getWidth());
+        if (view.getMinimumWidth() != minW) {
+          view.setMinimumWidth(minW);
+        }
+      }
+
+      @Override
+      public void onChildViewDetachedFromWindow(@NonNull View view) {}
+    });
 
     animator = new TreeAnimator();
     animator.setExpandDuration(animDuration);
