@@ -159,8 +159,13 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     }
   }
 
-  public void updateArrow(boolean expanded) {
-    ivArrow.setRotation(expanded ? 90f : 0f);
+  public void updateArrow(@NonNull TreeNode node) {
+    if (node.isFile() || node.isLoadingPlaceholder()) {
+      ivArrow.setVisibility(View.INVISIBLE);
+      return;
+    }
+    ivArrow.setVisibility(node.hasChildren() ? View.VISIBLE : View.INVISIBLE);
+    ivArrow.setRotation(node.isExpanded() ? 90f : 0f);
   }
 
   public void updateIcon(
