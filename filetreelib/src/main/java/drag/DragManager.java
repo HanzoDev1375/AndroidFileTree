@@ -2,6 +2,8 @@ package ir.hanzodev1375.filetreelib.drag;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.view.MotionEvent;
+import android.view.ViewParent;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -10,6 +12,7 @@ import ir.hanzodev1375.filetreelib.adapter.TreeAdapter;
 import ir.hanzodev1375.filetreelib.core.TreeNode;
 import ir.hanzodev1375.filetreelib.core.TreeController;
 import ir.hanzodev1375.filetreelib.provider.TreeDataProvider;
+import ir.hanzodev1375.filetreelib.widget.TwoDScrollView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +36,53 @@ public final class DragManager {
   @Nullable private TreeNode draggedNode = null;
   @NonNull private List<TreeNode> draggedNodes = new ArrayList<>();
   @Nullable private TreeNode pendingDropTarget = null;
+
+  private static final int AUTO_SCROLL_EDGE_PX = 120;
+  private static final int AUTO_SCROLL_STEP_PX = 16;
+  private static final long AUTO_SCROLL_INTERVAL_MS = 16L;
+
+  @Nullable private TwoDScrollView dragScrollView;
+  private float lastTouchX;
+  private float lastTouchY;
+  private boolean autoScrollActive = false;
+
+  private final Runnable autoScrollRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          if (!isDragging() || dragScrollView == null) {
+            autoScrollActive = false;
+            return;
+          }
+
+          int[] loc = new int[2];
+          dragScrollView.getLocationOnScreen(loc);
+          float localX = lastTouchX - loc[0];
+          float localY = lastTouchY - loc[1];
+          int width = dragScrollView.getWidth();
+          int height = dragScrollView.getHeight();
+
+          int dx = 0;
+          int dy = 0;
+          if (localX < AUTO_SCROLL_EDGE_PX) {
+            dx = -AUTO_SCROLL_STEP_PX;
+          } else if (localX > width - AUTO_SCROLL_EDGE_PX) {
+            dx = AUTO_SCROLL_STEP_PX;
+          }
+          if (localY < AUTO_SCROLL_EDGE_PX) {
+            dy = -AUTO_SCROLL_STEP_PX;
+          } else if (localY > height - AUTO_SCROLL_EDGE_PX) {
+            dy = AUTO_SCROLL_STEP_PX;
+          }
+
+          if (dx != 0 || dy != 0) {
+            dragScrollView.scrollBy(dx, dy);
+            mainHandler.postDelayed(this, AUTO_SCROLL_INTERVAL_MS);
+          } else {
+            autoScrollActive = false;
+          }
+        }
+      };
 
   public DragManager(@NonNull TreeController controller) {
     this.controller = controller;
@@ -97,6 +147,42 @@ public final class DragManager {
             return true;
           }
         });
+  }
+
+  /**
+   * Feed every raw touch event here (call from {@code TreeView.dispatchTouchEvent()}, NOT via
+   * {@code RecyclerView.addOnItemTouchListener}). This must come from dispatchTouchEvent()
+   * because once ItemTouchHelper's own OnItemTouchListener claims a drag gesture, RecyclerView
+   * stops delivering events to any other OnItemTouchListener for that gesture — dispatchTouchEvent
+   * is the only place that reliably still sees every event regardless of who else intercepts it.
+   *
+   * <p>Note: {@code TwoDScrollView} measures its RecyclerView child with an unspecified height,
+   * so the RecyclerView itself never has internal vertical scroll range — both axes are actually
+   * scrolled by the TwoDScrollView wrapper, which is why ItemTouchHelper's own built-in
+   * auto-scroll (RecyclerView-based) never fires here and both axes must be driven manually.
+   */
+  public void onRawTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+    if (!isDragging()) {
+      autoScrollActive = false;
+      return;
+    }
+
+    ViewParent parent = rv.getParent();
+    if (!(parent instanceof TwoDScrollView)) return;
+    dragScrollView = (TwoDScrollView) parent;
+
+    int action = e.getActionMasked();
+    if (action == MotionEvent.ACTION_MOVE) {
+      lastTouchX = e.getRawX();
+      lastTouchY = e.getRawY();
+      if (!autoScrollActive) {
+        autoScrollActive = true;
+        mainHandler.post(autoScrollRunnable);
+      }
+    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+      autoScrollActive = false;
+      mainHandler.removeCallbacks(autoScrollRunnable);
+    }
   }
 
   public void startDrag(@NonNull TreeNode node) {
@@ -166,6 +252,8 @@ public final class DragManager {
     draggedNode = null;
     draggedNodes = new ArrayList<>();
     pendingDropTarget = null;
+    autoScrollActive = false;
+    mainHandler.removeCallbacks(autoScrollRunnable);
   }
 
   @Nullable
