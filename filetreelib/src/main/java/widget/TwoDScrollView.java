@@ -85,7 +85,7 @@ public class TwoDScrollView extends FrameLayout {
   private int mMinimumVelocity;
   private int mMaximumVelocity;
 
-/** Pinch-to-zoom state (bounds, current level, enabled/disabled) — see {@link ZoomManager}. */
+  /** Pinch-to-zoom state (bounds, current level, enabled/disabled) — see {@link ZoomManager}. */
   private final ZoomManager zoomManager = new ZoomManager();
 
   private ScaleGestureDetector scaleGestureDetector;
@@ -115,7 +115,7 @@ public class TwoDScrollView extends FrameLayout {
       listener.onScrollChanged(l, t, oldl, oldt);
     }
   }
-  
+
   public TwoDScrollView(Context context) {
     super(context);
     initTwoDScrollView();
@@ -142,6 +142,8 @@ public class TwoDScrollView extends FrameLayout {
                 mIsScaling = true;
                 mIsBeingDragged = false;
                 if (!mScroller.isFinished()) mScroller.abortAnimation();
+                final ViewParent parent = getParent();
+                if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
                 return true;
               }
 
@@ -1020,6 +1022,8 @@ public class TwoDScrollView extends FrameLayout {
     if (zoomManager.isZoomMod() && (mIsScaling || ev.getPointerCount() > 1)) {
       // Claim the gesture for pinch-zooming as soon as a second finger touches down.
       // (The event itself is fed to scaleGestureDetector once, inside onTouchEvent.)
+      final ViewParent zoomParent = getParent();
+      if (zoomParent != null) zoomParent.requestDisallowInterceptTouchEvent(true);
       return true;
     }
 
@@ -1047,6 +1051,8 @@ public class TwoDScrollView extends FrameLayout {
         final int xDiff = (int) Math.abs(x - mLastMotionX);
         if (yDiff > mTouchSlop || xDiff > mTouchSlop) {
           mIsBeingDragged = true;
+          final ViewParent parent = getParent();
+          if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
         }
         break;
 
@@ -1061,6 +1067,10 @@ public class TwoDScrollView extends FrameLayout {
          * being flinged.
          */
         mIsBeingDragged = !mScroller.isFinished();
+        if (mIsBeingDragged) {
+          final ViewParent parent = getParent();
+          if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+        }
         break;
 
       case MotionEvent.ACTION_CANCEL:
