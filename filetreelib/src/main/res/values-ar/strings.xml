@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">مستكشف عرض الشجرة</string>
+  <string name="hint_search">بحث في الملفات...</string>
+  <string name="cd_expand_arrow">توسيع أو طي</string>
+  <string name="cd_node_icon">رمز الملف أو المجلد</string>
+  <string name="cd_badge_icon">شارة الحالة</string>
+  <string name="cd_close_selection">إغلاق التحديد</string>
+  <string name="cd_copy">ينسخ</string>
+  <string name="cd_cut">يقطع</string>
+  <string name="cd_paste">لصق</string>
+  <string name="cd_rename">إعادة تسمية</string>
+  <string name="cd_select_all">حدد الكل</string>
+  <string name="cd_delete">يمسح</string>
+  <string name="cd_more_options">المزيد من الخيارات</string>
+</resources>

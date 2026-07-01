@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">TreeView Explorer</string>
+  <string name="hint_search">جستجوی فایل ها…</string>
+  <string name="cd_expand_arrow">گسترش یا فروپاشی</string>
+  <string name="cd_node_icon">نماد فایل یا پوشه</string>
+  <string name="cd_badge_icon">نشان وضعیت</string>
+  <string name="cd_close_selection">بستن انتخاب</string>
+  <string name="cd_copy">کپی کنید</string>
+  <string name="cd_cut">برش دهید</string>
+  <string name="cd_paste">چسباندن</string>
+  <string name="cd_rename">تغییر نام دهید</string>
+  <string name="cd_select_all">همه را انتخاب کنید</string>
+  <string name="cd_delete">حذف کنید</string>
+  <string name="cd_more_options">گزینه های بیشتر</string>
+</resources>

@@ -12,98 +12,89 @@ import java.util.Queue;
 
 class AngularJsDetector {
 
-    private static final String[] ANGULARJS_KEYWORDS = {
-            "ng-app",
-            "ng-controller",
-            "ng-model",
-            "ng-repeat",
-            "ng-if",
-            "ng-show",
-            "ng-hide",
-            "ng-click"
-    };
+  private static final String[] ANGULARJS_KEYWORDS = {
+    "ng-app", "ng-controller", "ng-model", "ng-repeat", "ng-if", "ng-show", "ng-hide", "ng-click"
+  };
 
-    protected static boolean isAngularJsDirectory(String dirPath) {
-/*
-        boolean hasPackageJson = isAngularJsPackageJsonFile(dirPath + "/package.json");
-        if (!hasPackageJson) return false;
+  protected static boolean isAngularJsDirectory(String dirPath) {
 
-        try {
-            File dir = new File(dirPath);
-            Queue<File> queue = new LinkedList<>();
-            queue.add(dir);
+    boolean hasPackageJson = isAngularJsPackageJsonFile(dirPath + "/package.json");
+    if (!hasPackageJson) return false;
 
-            while (!queue.isEmpty()) {
-                File current = queue.poll();
-                if (current.isDirectory()) {
-                    File[] files = current.listFiles();
-                    if (files != null) {
-                        for (File file : files) {
-                            queue.add(file);
-                        }
-                    }
-                } else if (current.isFile() && current.getName().endsWith(".html")) {
-                    if (isAngularJsFile(current.getAbsolutePath())) {
-                        return true;
-                    }
-                }
+    try {
+      File dir = new File(dirPath);
+      Queue<File> queue = new LinkedList<>();
+      queue.add(dir);
+
+      while (!queue.isEmpty()) {
+        File current = queue.poll();
+        if (current.isDirectory()) {
+          File[] files = current.listFiles();
+          if (files != null) {
+            for (File file : files) {
+              queue.add(file);
             }
-        } catch (Exception e) {
-
+          }
+        } else if (current.isFile() && current.getName().endsWith(".html")) {
+          if (isAngularJsFile(current.getAbsolutePath())) {
+            return true;
+          }
         }
-*/
-        return false;
+      }
+    } catch (Exception e) {
+
     }
 
-    protected static boolean isAngularJsFile(String filePath) {
-/*
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                for (String keyword : ANGULARJS_KEYWORDS) {
-                    if (line.contains(keyword)) {
-                        return true;
-                    }
-                }
-            }
-        } catch (IOException e) {
+    return false;
+  }
 
+  protected static boolean isAngularJsFile(String filePath) {
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        for (String keyword : ANGULARJS_KEYWORDS) {
+          if (line.contains(keyword)) {
+            return true;
+          }
         }
-*/
-        return false;
+      }
+    } catch (IOException e) {
+
     }
 
-    protected static boolean isAngularJsPackageJsonFile(String filePath) {
-/*
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            var sb = new StringBuilder();
-            var line = reader.readLine();
-            while (line != null) {
-                sb.append(line);
-                line = reader.readLine();
-            }
+    return false;
+  }
 
-            var json = new JSONObject(sb.toString());
+  protected static boolean isAngularJsPackageJsonFile(String filePath) {
 
-            var hasDependencies = json.has("dependencies") || json.has("devDependencies");
-            var hasAngular = false;
-            if (hasDependencies) {
-                var dependencies = json.optJSONObject("dependencies");
-                var devDependencies = json.optJSONObject("devDependencies");
-                if (dependencies != null) {
-                    hasAngular = dependencies.has("angular");
-                }
-                if (!hasAngular && devDependencies != null) {
-                    hasAngular = devDependencies.has("angular");
-                }
-            }
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      var sb = new StringBuilder();
+      var line = reader.readLine();
+      while (line != null) {
+        sb.append(line);
+        line = reader.readLine();
+      }
 
-            return hasDependencies && hasAngular;
-        } catch (IOException | JSONException e) {
+      var json = new JSONObject(sb.toString());
 
+      var hasDependencies = json.has("dependencies") || json.has("devDependencies");
+      var hasAngular = false;
+      if (hasDependencies) {
+        var dependencies = json.optJSONObject("dependencies");
+        var devDependencies = json.optJSONObject("devDependencies");
+        if (dependencies != null) {
+          hasAngular = dependencies.has("angular");
         }
-*/
-        return false;
-    }
+        if (!hasAngular && devDependencies != null) {
+          hasAngular = devDependencies.has("angular");
+        }
+      }
 
+      return hasDependencies && hasAngular;
+    } catch (IOException | JSONException e) {
+
+    }
+    return false;
+  }
 }

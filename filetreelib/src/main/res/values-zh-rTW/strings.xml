@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">樹形瀏覽器</string>
+  <string name="hint_search">搜尋文件...</string>
+  <string name="cd_expand_arrow">展開或折疊</string>
+  <string name="cd_node_icon">文件或資料夾圖標</string>
+  <string name="cd_badge_icon">狀態徽章</string>
+  <string name="cd_close_selection">關閉選擇</string>
+  <string name="cd_copy">複製</string>
+  <string name="cd_cut">切</string>
+  <string name="cd_paste">貼上</string>
+  <string name="cd_rename">重新命名</string>
+  <string name="cd_select_all">選擇全部</string>
+  <string name="cd_delete">刪除</string>
+  <string name="cd_more_options">更多選擇</string>
+</resources>

@@ -24,10 +24,6 @@ public class DefaultIconProvider extends BaseIconProvider {
       return null;
     }
 
-    if (node.isFolder()) {
-      return ContextCompat.getDrawable(context, R.drawable.ic_filetree_folder);
-    }
-
     FilePayload payloads = node.getPayload(FilePayload.class);
     String filePath = payloads != null ? payloads.getAbsolutePath() : node.getName();
     if (filePath == null || filePath.isEmpty()) filePath = node.getName();
@@ -45,11 +41,6 @@ public class DefaultIconProvider extends BaseIconProvider {
 
     if (node.isLoadingPlaceholder()) {
       target.setImageDrawable(null);
-      return;
-    }
-
-    if (node.isFolder()) {
-      target.setImageResource(R.drawable.ic_filetree_folder);
       return;
     }
 

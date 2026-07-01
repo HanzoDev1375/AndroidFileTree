@@ -12,96 +12,89 @@ import java.util.Queue;
 
 class ReactDetector {
 
-    private static final String[] REACT_KEYWORDS = {
-            "React.",
-            "ReactDOM.",
-            "createReactClass",
-            "createClass",
-            "PropTypes.",
-            "Component",
-            "render("
-    };
+  private static final String[] REACT_KEYWORDS = {
+    "React.", "ReactDOM.", "createReactClass", "createClass", "PropTypes.", "Component", "render("
+  };
 
-    protected static boolean isReactDirectory(String dirPath) {
-      /*
-        boolean hasPackageJson = isReactPackageJsonFile(dirPath + "/package.json");
-        if (!hasPackageJson) return false;
+  protected static boolean isReactDirectory(String dirPath) {
 
-        try {
-            File dir = new File(dirPath);
-            Queue<File> queue = new LinkedList<>();
-            queue.add(dir);
+    boolean hasPackageJson = isReactPackageJsonFile(dirPath + "/package.json");
+    if (!hasPackageJson) return false;
 
-            while (!queue.isEmpty()) {
-                File current = queue.poll();
-                if (current.isDirectory()) {
-                    File[] files = current.listFiles();
-                    if (files != null) {
-                        for (File file : files) {
-                            queue.add(file);
-                        }
-                    }
-                } else if (current.isFile() && current.getName().endsWith(".js")) {
-                    if (isReactFile(current.getAbsolutePath())) {
-                        return true;
-                    }
-                }
+    try {
+      File dir = new File(dirPath);
+      Queue<File> queue = new LinkedList<>();
+      queue.add(dir);
+
+      while (!queue.isEmpty()) {
+        File current = queue.poll();
+        if (current.isDirectory()) {
+          File[] files = current.listFiles();
+          if (files != null) {
+            for (File file : files) {
+              queue.add(file);
             }
-        } catch (Exception e) {
-
+          }
+        } else if (current.isFile() && current.getName().endsWith(".js")) {
+          if (isReactFile(current.getAbsolutePath())) {
+            return true;
+          }
         }
-*/
-        return false;
+      }
+    } catch (Exception e) {
+
     }
 
-    protected static boolean isReactFile(String filePath) {
-/*
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                for (String keyword : REACT_KEYWORDS) {
-                    if (line.contains(keyword)) {
-                        return true;
-                    }
-                }
-            }
-        } catch (IOException e) {
+    return false;
+  }
 
+  protected static boolean isReactFile(String filePath) {
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        for (String keyword : REACT_KEYWORDS) {
+          if (line.contains(keyword)) {
+            return true;
+          }
         }
-*/
-        return false;
+      }
+    } catch (IOException e) {
+
     }
 
-    protected static boolean isReactPackageJsonFile(String filePath) {
-/*
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            var sb = new StringBuilder();
-            var line = reader.readLine();
-            while (line != null) {
-                sb.append(line);
-                line = reader.readLine();
-            }
+    return false;
+  }
 
-            var json = new JSONObject(sb.toString());
+  protected static boolean isReactPackageJsonFile(String filePath) {
 
-            var hasDependencies = json.has("dependencies") || json.has("devDependencies");
-            var hasReact = false;
-            if (hasDependencies) {
-                var dependencies = json.optJSONObject("dependencies");
-                var devDependencies = json.optJSONObject("devDependencies");
-                if (dependencies != null) {
-                    hasReact = dependencies.has("react") || dependencies.has("react-dom");
-                }
-                if (!hasReact && devDependencies != null) {
-                    hasReact = devDependencies.has("react") || devDependencies.has("react-dom");
-                }
-            }
-            return hasDependencies && hasReact;
-        } catch (IOException | JSONException e) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      var sb = new StringBuilder();
+      var line = reader.readLine();
+      while (line != null) {
+        sb.append(line);
+        line = reader.readLine();
+      }
 
+      var json = new JSONObject(sb.toString());
+
+      var hasDependencies = json.has("dependencies") || json.has("devDependencies");
+      var hasReact = false;
+      if (hasDependencies) {
+        var dependencies = json.optJSONObject("dependencies");
+        var devDependencies = json.optJSONObject("devDependencies");
+        if (dependencies != null) {
+          hasReact = dependencies.has("react") || dependencies.has("react-dom");
         }
-*/
-        return false;
+        if (!hasReact && devDependencies != null) {
+          hasReact = devDependencies.has("react") || devDependencies.has("react-dom");
+        }
+      }
+      return hasDependencies && hasReact;
+    } catch (IOException | JSONException e) {
+
     }
 
+    return false;
+  }
 }

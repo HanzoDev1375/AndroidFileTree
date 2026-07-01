@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Древовидный проводник</string>
+  <string name="hint_search">Поиск файлов…</string>
+  <string name="cd_expand_arrow">Развернуть или свернуть</string>
+  <string name="cd_node_icon">Значок файла или папки</string>
+  <string name="cd_badge_icon">Значок статуса</string>
+  <string name="cd_close_selection">Закрыть выбор</string>
+  <string name="cd_copy">Копировать</string>
+  <string name="cd_cut">Резать</string>
+  <string name="cd_paste">Вставить</string>
+  <string name="cd_rename">Переименовать</string>
+  <string name="cd_select_all">Выбрать все</string>
+  <string name="cd_delete">Удалить</string>
+  <string name="cd_more_options">Больше возможностей</string>
+</resources>
