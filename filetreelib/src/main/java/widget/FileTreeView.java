@@ -467,11 +467,8 @@ public class FileTreeView extends LinearLayout {
   public ThemeManager getTheme() {
     return this.theme;
   }
-  
-  /**
-   * <p> setCustomTheme
-   */
 
+  /** setCustomTheme */
   public void setTheme(ThemeManager theme) {
     this.theme = theme;
   }
@@ -528,5 +525,35 @@ public class FileTreeView extends LinearLayout {
   /** Resets the zoom level back to 100%. */
   public void resetZoom() {
     if (scrollContainer != null) scrollContainer.resetZoom();
+  }
+
+  /**
+   * Enables or disables rainbow-colored indent guide lines, similar to bracket-pair colorization in
+   * VS Code — each indentation level is drawn in a different color from a cycling palette instead
+   * of one flat line color. <b>Off by default.</b>
+   *
+   * @param enabled true to color indent guides by depth, false for a single flat color
+   */
+  public void setRainbowIndentGuides(boolean enabled) {
+    if (treeView != null) treeView.setRainbowIndentGuides(enabled);
+  }
+
+  /**
+   * @return whether rainbow indent guides are currently enabled.
+   */
+  public boolean isRainbowIndentGuides() {
+    return treeView != null && treeView.isRainbowIndentGuides();
+  }
+
+  /**
+   * Customizes the color palette used when rainbow indent guides are enabled. Depth 1 uses {@code
+   * colors[0]}, depth 2 uses {@code colors[1]}, and so on, wrapping back to the start once the
+   * array is exhausted. Can be called before or after {@link #loadTree()}.
+   *
+   * @param colors non-empty array of ARGB colors, e.g. from {@link
+   *     android.graphics.Color#parseColor(String)}
+   */
+  public void setRainbowIndentGuideColors(@NonNull int[] colors) {
+    if (treeView != null) treeView.setRainbowIndentGuideColors(colors);
   }
 }

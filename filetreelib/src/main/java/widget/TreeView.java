@@ -33,6 +33,8 @@ public final class TreeView extends RecyclerView {
   private int focusedPosition = -1;
 
   private boolean showTreeLines = true;
+  private boolean rainbowIndentGuides = false;
+  @Nullable private int[] rainbowIndentGuideColors = null; // null => TreeDecoration's defaults
   private boolean animateExpand = true;
   private long animDuration = 180L;
 
@@ -60,6 +62,7 @@ public final class TreeView extends RecyclerView {
     if (attrs != null) {
       TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TreeView);
       showTreeLines = a.getBoolean(R.styleable.TreeView_tv_showTreeLines, true);
+      rainbowIndentGuides = a.getBoolean(R.styleable.TreeView_tv_rainbowIndentGuides, false);
       animateExpand = a.getBoolean(R.styleable.TreeView_tv_animateExpand, true);
       animDuration = a.getInt(R.styleable.TreeView_tv_animateDuration, 180);
       a.recycle();
@@ -67,39 +70,41 @@ public final class TreeView extends RecyclerView {
 
     screenWidth = context.getResources().getDisplayMetrics().widthPixels;
 
-    setLayoutManager(new LinearLayoutManager(context) {
-      @Override
-      public boolean canScrollHorizontally() {
-        // Horizontal scroll is handled by TwoDScrollView wrapper, not RecyclerView
-        return false;
-      }
+    setLayoutManager(
+        new LinearLayoutManager(context) {
+          @Override
+          public boolean canScrollHorizontally() {
+            // Horizontal scroll is handled by TwoDScrollView wrapper, not RecyclerView
+            return false;
+          }
 
-      @Override
-      public void onMeasure(
-          @NonNull RecyclerView.Recycler recycler,
-          @NonNull RecyclerView.State state,
-          int widthSpec,
-          int heightSpec) {
-        // Give children UNSPECIFIED width so they can grow beyond the screen
-        widthSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
-        super.onMeasure(recycler, state, widthSpec, heightSpec);
-      }
-    });
+          @Override
+          public void onMeasure(
+              @NonNull RecyclerView.Recycler recycler,
+              @NonNull RecyclerView.State state,
+              int widthSpec,
+              int heightSpec) {
+            // Give children UNSPECIFIED width so they can grow beyond the screen
+            widthSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+            super.onMeasure(recycler, state, widthSpec, heightSpec);
+          }
+        });
     setHasFixedSize(false);
 
     // Force each item to be at least as wide as the screen.
-    addOnChildAttachStateChangeListener(new OnChildAttachStateChangeListener() {
-      @Override
-      public void onChildViewAttachedToWindow(@NonNull View view) {
-        int minW = Math.max(screenWidth, getWidth());
-        if (view.getMinimumWidth() != minW) {
-          view.setMinimumWidth(minW);
-        }
-      }
+    addOnChildAttachStateChangeListener(
+        new OnChildAttachStateChangeListener() {
+          @Override
+          public void onChildViewAttachedToWindow(@NonNull View view) {
+            int minW = Math.max(screenWidth, getWidth());
+            if (view.getMinimumWidth() != minW) {
+              view.setMinimumWidth(minW);
+            }
+          }
 
-      @Override
-      public void onChildViewDetachedFromWindow(@NonNull View view) {}
-    });
+          @Override
+          public void onChildViewDetachedFromWindow(@NonNull View view) {}
+        });
 
     animator = new TreeAnimator();
     animator.setExpandDuration(animDuration);
@@ -115,6 +120,10 @@ public final class TreeView extends RecyclerView {
     if (treeDecoration != null) removeItemDecoration(treeDecoration);
     treeDecoration = new TreeDecoration(themeManager);
     treeDecoration.setShowLines(showTreeLines);
+    treeDecoration.setRainbowIndentGuides(rainbowIndentGuides);
+    if (rainbowIndentGuideColors != null) {
+      treeDecoration.setRainbowColors(rainbowIndentGuideColors);
+    }
     addItemDecoration(treeDecoration);
 
     setFocusable(true);
@@ -127,43 +136,47 @@ public final class TreeView extends RecyclerView {
     // Debounced: compound ops like cut (remove + insert) fire two events back-to-back.
     // removeCallbacks+post ensures only one rebuild runs after both events settle.
     final Handler modelSyncHandler = new Handler(Looper.getMainLooper());
-    final Runnable modelSyncRunnable = () -> {
-      controller.getExpandManager().rebuildVisibleList(controller.getModel().getRoot());
-      treeAdapter.submitNewList(controller.getVisibleList().snapshot());
-    };
+    final Runnable modelSyncRunnable =
+        () -> {
+          controller.getExpandManager().rebuildVisibleList(controller.getModel().getRoot());
+          treeAdapter.submitNewList(controller.getVisibleList().snapshot());
+        };
 
-    controller.getModel().addListener(new ir.hanzodev1375.filetreelib.core.TreeModel.TreeModelListener() {
-      @Override
-      public void onNodesInserted(
-          @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
-          @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> insertedNodes,
-          int startIndex) {
-        modelSyncHandler.removeCallbacks(modelSyncRunnable);
-        modelSyncHandler.post(modelSyncRunnable);
-      }
+    controller
+        .getModel()
+        .addListener(
+            new ir.hanzodev1375.filetreelib.core.TreeModel.TreeModelListener() {
+              @Override
+              public void onNodesInserted(
+                  @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
+                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> insertedNodes,
+                  int startIndex) {
+                modelSyncHandler.removeCallbacks(modelSyncRunnable);
+                modelSyncHandler.post(modelSyncRunnable);
+              }
 
-      @Override
-      public void onNodesRemoved(
-          @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
-          @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> removedNodes,
-          int startIndex) {
-        modelSyncHandler.removeCallbacks(modelSyncRunnable);
-        modelSyncHandler.post(modelSyncRunnable);
-      }
+              @Override
+              public void onNodesRemoved(
+                  @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
+                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> removedNodes,
+                  int startIndex) {
+                modelSyncHandler.removeCallbacks(modelSyncRunnable);
+                modelSyncHandler.post(modelSyncRunnable);
+              }
 
-      @Override
-      public void onNodesChanged(
-          @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> changedNodes) {
-        // Name/icon change only — no structure rebuild needed
-        treeAdapter.submitNewList(controller.getVisibleList().snapshot());
-      }
+              @Override
+              public void onNodesChanged(
+                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> changedNodes) {
+                // Name/icon change only — no structure rebuild needed
+                treeAdapter.submitNewList(controller.getVisibleList().snapshot());
+              }
 
-      @Override
-      public void onStructureChanged() {
-        modelSyncHandler.removeCallbacks(modelSyncRunnable);
-        modelSyncHandler.post(modelSyncRunnable);
-      }
-    });
+              @Override
+              public void onStructureChanged() {
+                modelSyncHandler.removeCallbacks(modelSyncRunnable);
+                modelSyncHandler.post(modelSyncRunnable);
+              }
+            });
   }
 
   /** Attach the DragManager — call after setup(). */
@@ -260,25 +273,23 @@ public final class TreeView extends RecyclerView {
   }
 
   /**
-   * Returns this TreeView wrapped inside a TwoDScrollView for both
-   * vertical and horizontal scrolling. Call this instead of using
-   * TreeView directly in your layout, or wrap it in XML manually.
+   * Returns this TreeView wrapped inside a TwoDScrollView for both vertical and horizontal
+   * scrolling. Call this instead of using TreeView directly in your layout, or wrap it in XML
+   * manually.
    *
-   * Usage:
-   *   View scrollable = treeView.getScrollableView();
-   *   container.addView(scrollable);
+   * <p>Usage: View scrollable = treeView.getScrollableView(); container.addView(scrollable);
    */
   public View getScrollableView() {
     TwoDScrollView scrollView = new TwoDScrollView(getContext());
-    scrollView.setLayoutParams(new ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.MATCH_PARENT));
+    scrollView.setLayoutParams(
+        new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     if (getParent() != null) {
       ((ViewGroup) getParent()).removeView(this);
     }
-    setLayoutParams(new ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        ViewGroup.LayoutParams.MATCH_PARENT));
+    setLayoutParams(
+        new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
     scrollView.addView(this);
     return scrollView;
   }
@@ -287,6 +298,42 @@ public final class TreeView extends RecyclerView {
     showTreeLines = show;
     if (treeDecoration != null) treeDecoration.setShowLines(show);
     invalidateItemDecorations();
+  }
+
+  /**
+   * Enables or disables rainbow-colored indent guide lines — each depth level cycles through a
+   * different color instead of one flat line color, similar to bracket-pair colorization in VS
+   * Code. Off by default. Safe to call before {@link #setup} (the setting is applied once the
+   * decoration is created).
+   */
+  public void setRainbowIndentGuides(boolean enabled) {
+    rainbowIndentGuides = enabled;
+    if (treeDecoration != null) {
+      treeDecoration.setRainbowIndentGuides(enabled);
+      invalidateItemDecorations();
+    }
+  }
+
+  /**
+   * @return whether rainbow indent guides are currently enabled. Off by default.
+   */
+  public boolean isRainbowIndentGuides() {
+    return rainbowIndentGuides;
+  }
+
+  /**
+   * Overrides the color palette used by rainbow indent guides. Depth 1 uses {@code colors[0]},
+   * depth 2 uses {@code colors[1]}, wrapping back to {@code colors[0]} once exhausted. Safe to call
+   * before {@link #setup} (the colors are applied once the decoration is created).
+   *
+   * @param colors non-empty array of ARGB colors
+   */
+  public void setRainbowIndentGuideColors(@NonNull int[] colors) {
+    rainbowIndentGuideColors = colors;
+    if (treeDecoration != null) {
+      treeDecoration.setRainbowColors(colors);
+      invalidateItemDecorations();
+    }
   }
 
   public void setAnimateExpand(boolean animate) {
