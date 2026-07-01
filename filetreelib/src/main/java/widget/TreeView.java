@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
@@ -36,6 +37,7 @@ public final class TreeView extends RecyclerView {
   private long animDuration = 180L;
 
   @Nullable private ItemTouchHelper dragTouchHelper = null;
+  @Nullable private DragManager dragManager = null;
 
   public TreeView(@NonNull Context context) {
     super(context);
@@ -164,12 +166,13 @@ public final class TreeView extends RecyclerView {
     });
   }
 
-  /** DragManager رو وصل کن — بعد از setup() صدا بزن. */
+  /** Attach the DragManager — call after setup(). */
   public void attachDragManager(@NonNull DragManager dragManager) {
     if (treeAdapter == null) return;
     if (dragTouchHelper != null) dragTouchHelper.attachToRecyclerView(null);
     dragTouchHelper = dragManager.buildItemTouchHelper(treeAdapter);
     dragTouchHelper.attachToRecyclerView(this);
+    this.dragManager = dragManager;
   }
 
   public void detachDragManager() {
@@ -177,6 +180,19 @@ public final class TreeView extends RecyclerView {
       dragTouchHelper.attachToRecyclerView(null);
       dragTouchHelper = null;
     }
+    this.dragManager = null;
+  }
+
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent ev) {
+    // dispatchTouchEvent always sees every event, regardless of which
+    // OnItemTouchListener (e.g. ItemTouchHelper's own) ends up claiming the
+    // gesture — this is the only reliable place to feed DragManager's
+    // edge auto-scroll tracking.
+    if (dragManager != null) {
+      dragManager.onRawTouchEvent(this, ev);
+    }
+    return super.dispatchTouchEvent(ev);
   }
 
   @Nullable
