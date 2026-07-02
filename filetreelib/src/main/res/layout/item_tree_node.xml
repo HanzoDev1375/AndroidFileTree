@@ -38,7 +38,7 @@
              android:layout_height="16dp"
              android:layout_width="16dp"
              android:layout_gravity="center"
-             android:src="@drawable/ic_arrow_right"
+             android:src="@drawable/ic_node_arrow_right"
              android:scaleType="centerInside"
              android:contentDescription="@string/cd_expand_arrow"
              android:id="@+id/tv_arrow" />

@@ -1,4 +1,4 @@
-package ir.hanzodev1375.filetreelibglide.glide.apkicon;
+package ir.hanzodev1375.filetreelib.filetreelibglide.glide.apkicon;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
