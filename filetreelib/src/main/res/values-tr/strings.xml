@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">TreeView Gezgini</string>
+  <string name="hint_search">Dosyaları ara…</string>
+  <string name="cd_expand_arrow">Genişlet veya daralt</string>
+  <string name="cd_node_icon">Dosya veya klasör simgesi</string>
+  <string name="cd_badge_icon">Durum rozeti</string>
+  <string name="cd_close_selection">Seçimi kapat</string>
+  <string name="cd_copy">Kopyala</string>
+  <string name="cd_cut">Kesmek</string>
+  <string name="cd_paste">Yapıştır</string>
+  <string name="cd_rename">Yeniden isimlendirmek</string>
+  <string name="cd_select_all">Tümünü seç</string>
+  <string name="cd_delete">Silmek</string>
+  <string name="cd_more_options">Daha fazla seçenek</string>
+</resources>

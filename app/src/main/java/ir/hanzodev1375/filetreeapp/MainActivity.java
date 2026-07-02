@@ -6,6 +6,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.widget.PopupWindow;
+import android.widget.Toast;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
@@ -42,11 +43,28 @@ public class MainActivity extends AppCompatActivity {
         });
 
     FileTreeView view = new FileTreeView(this);
-    view.setPadding(10,10,10,10);
+    view.setPadding(10, 10, 10, 10);
     view.setZoomMod(true);
     view.setZoomScale(50, 300);
     view.setNodePath("/storage/emulated/0/");
     view.loadTree();
+    int[] colors = {
+      Color.parseColor("#FFD9FF00"),
+      Color.parseColor("#FF80FF00"),
+      Color.parseColor("#FF00B7FF"),
+      Color.parseColor("#FFFF000D"),
+      Color.parseColor("#FFFFAFEB"),
+      Color.parseColor("#FFFFE4AF"),
+      Color.parseColor("#FFFFC7AF"),
+      Color.parseColor("#FFAFD6FF"),
+      Color.parseColor("#FFFFAFAF")
+    };
+    view.setRainbowIndentGuideColors(colors);
+    view.setRainbowIndentGuides(true);
+    view.setClickNode(
+        (node, views) -> {
+          Toast.makeText(getApplication(), node.getAbsolutePath(), Toast.LENGTH_LONG).show();
+        });
 
     binding.drawer.addView(view);
 

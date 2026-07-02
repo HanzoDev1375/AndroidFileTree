@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Explorador TreeView</string>
+  <string name="hint_search">Pesquisar arquivos…</string>
+  <string name="cd_expand_arrow">Expandir ou recolher</string>
+  <string name="cd_node_icon">Ícone de arquivo ou pasta</string>
+  <string name="cd_badge_icon">Selo de status</string>
+  <string name="cd_close_selection">Fechar seleção</string>
+  <string name="cd_copy">Cópia</string>
+  <string name="cd_cut">Corte</string>
+  <string name="cd_paste">Colar</string>
+  <string name="cd_rename">Renomear</string>
+  <string name="cd_select_all">Selecionar tudo</string>
+  <string name="cd_delete">Excluir</string>
+  <string name="cd_more_options">Mais opções</string>
+</resources>

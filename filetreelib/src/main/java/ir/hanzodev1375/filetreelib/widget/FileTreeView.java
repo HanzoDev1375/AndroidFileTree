@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import ir.hanzodev1375.filetreelib.callbacks.OnNodeCallBack;
 
 public class FileTreeView extends LinearLayout {
   private String nodePath;
@@ -47,11 +48,13 @@ public class FileTreeView extends LinearLayout {
   private ThemeManager theme;
   private ClipboardManager clipboard;
   private FileWatcher fileWatcher;
+
   private TreeSearchEngine searchEngine;
   private TreeFilter treeFilter;
   private ExecutorService searchExecutor;
   private List<TreeNode> fullVisibleSnapshot = null;
   private TreeNode lastOpenedFolder = null;
+  private OnNodeCallBack click;
 
   public FileTreeView(Context context) {
     super(context);
@@ -182,7 +185,9 @@ public class FileTreeView extends LinearLayout {
               lastOpenedFolder = node;
               controller.toggleNode(node);
             } else {
-              Toast.makeText(getContext(), "Open: " + node.getName(), Toast.LENGTH_SHORT).show();
+              if (click != null) {
+                click.onClickNode(node, view);
+              }
             }
           });
     }
@@ -555,5 +560,9 @@ public class FileTreeView extends LinearLayout {
    */
   public void setRainbowIndentGuideColors(@NonNull int[] colors) {
     if (treeView != null) treeView.setRainbowIndentGuideColors(colors);
+  }
+
+  public void setClickNode(OnNodeCallBack click) {
+    this.click = click;
   }
 }
