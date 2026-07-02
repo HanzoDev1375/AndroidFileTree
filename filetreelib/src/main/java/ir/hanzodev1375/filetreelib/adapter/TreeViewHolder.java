@@ -1,5 +1,6 @@
 package ir.hanzodev1375.filetreelib.adapter;
 
+import android.graphics.Color;
 import android.text.SpannableString;
 import android.text.style.BackgroundColorSpan;
 import android.view.View;
@@ -38,6 +39,7 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
   final CheckBox checkbox;
   boolean showItem = false;
   final ImageView creatorFile, creatorFolder;
+  private int iconArrow;
 
   public TreeViewHolder(@NonNull View itemView) {
     super(itemView);
@@ -70,9 +72,6 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     lp.width = indentPx;
     indentSpacer.setLayoutParams(lp);
     if (selectionMode) {
-      // Checkbox, arrow and loading spinner all live in the same ViewFlipper now,
-      // so "showing the checkbox" means flipping to its child index rather than
-      // toggling visibility independently.
       arrowSwitcher.setVisibility(View.VISIBLE);
       showChild(CHILD_CHECKBOX);
       checkbox.setChecked(node.isSelected());
@@ -83,6 +82,14 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       applyLoadingState(node);
       ivArrow.setRotation(node.isExpanded() ? 90f : 0f);
     }
+    if (iconArrow == 0) {
+      iconArrow = R.drawable.ic_arrow_right;
+    }
+    iconArrow = R.drawable.ic_arrow_right;
+    if (iconArrow == 0) {
+      iconArrow = R.drawable.ic_arrow_right;
+    }
+    ivArrow.setImageResource(iconArrow);
     ivArrow.setOnClickListener(selectionMode ? null : arrowClickListener);
     if (!showItem) {
       creatorFolder.setVisibility(View.GONE);
@@ -100,7 +107,6 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       ivIcon.setVisibility(View.VISIBLE);
     }
 
-    // Name
     if (searchResult != null && searchResult.getHighlightedName() != null) {
       tvName.setText(searchResult.getHighlightedName());
     } else if (searchResult != null && !searchResult.getMatchRanges().isEmpty()) {
@@ -119,7 +125,6 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       tvName.setText(node.getName());
     }
 
-    // Git/error color
     FilePayload payload = node.getPayload(FilePayload.class);
     if (payload != null) {
       if (payload.getErrorCount() > 0) {
@@ -136,8 +141,7 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     }
 
     itemRoot.setAlpha(isCut ? 0.4f : 1f);
-    itemRoot.setBackgroundColor(
-        node.isSelected() ? theme.getSelectedBg() : android.graphics.Color.TRANSPARENT);
+    itemRoot.setBackgroundColor(node.isSelected() ? theme.getSelectedBg() : Color.TRANSPARENT);
 
     if (payload != null && payload.getBadge() != null) {
       tvBadge.setText(payload.getBadge());
@@ -165,13 +169,10 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       showChild(CHILD_CHECKBOX);
       checkbox.setChecked(selected);
     }
-    // When selectionMode is false, updateArrow(node, selectionMode) — called right
-    // after this in the payload-bind path — is responsible for flipping the
-    // switcher back to the arrow/loading child.
   }
 
   public void updateArrow(@NonNull TreeNode node, boolean selectionMode) {
-    if (selectionMode) return; // updateSelection already put the checkbox on top
+    if (selectionMode) return;
     if (node.isFile()) {
       arrowSwitcher.setVisibility(View.INVISIBLE);
       return;
@@ -181,18 +182,11 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     ivArrow.setRotation(node.isExpanded() ? 90f : 0f);
   }
 
-  /**
-   * Flips {@link #arrowSwitcher} between the arrow icon and the inline loading spinner
-   * (the checkbox child is left alone here — only reachable via selection mode)
-   * depending on {@link TreeNode#isLazyLoadPending()}. Also disables the arrow's click
-   * target while loading so the user can't re-trigger the load mid-flight.
-   */
   private void applyLoadingState(@NonNull TreeNode node) {
     showChild(node.isLazyLoadPending() ? CHILD_LOADING : CHILD_ARROW);
     ivArrow.setClickable(!node.isLazyLoadPending());
   }
 
-  /** Flips {@link #arrowSwitcher} to the given child index, skipping the call if it's already displayed. */
   private void showChild(int index) {
     if (arrowSwitcher.getDisplayedChild() != index) {
       arrowSwitcher.setDisplayedChild(index);
@@ -212,5 +206,75 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
 
   public void setShowIconFolderAndFile(boolean show) {
     this.showItem = show;
+  }
+
+  public int getIconArrow() {
+    return this.iconArrow;
+  }
+
+  public void setIconArrow(int iconArrow) {
+    this.iconArrow = iconArrow;
+  }
+
+  public View getItemRoot() {
+    return itemRoot;
+  }
+
+  public ViewFlipper getArrowSwitcher() {
+    return arrowSwitcher;
+  }
+
+  public ImageView getIvArrow() {
+    return ivArrow;
+  }
+
+  public ImageView getIvIcon() {
+    return ivIcon;
+  }
+
+  public TextView getTvName() {
+    return tvName;
+  }
+
+  public TextView getTvBadge() {
+    return tvBadge;
+  }
+
+  public ImageView getIvBadgeIcon() {
+    return ivBadgeIcon;
+  }
+
+  public View getIndentSpacer() {
+    return indentSpacer;
+  }
+
+  public CheckBox getCheckbox() {
+    return checkbox;
+  }
+
+  public ImageView getCreatorFile() {
+    return creatorFile;
+  }
+
+  public ImageView getCreatorFolder() {
+    return creatorFolder;
+  }
+
+  public boolean isShowItem() {
+    return showItem;
+  }
+
+  public boolean isSelected() {
+    return checkbox != null && checkbox.isChecked();
+  }
+
+  public boolean isLoading() {
+    return arrowSwitcher != null && arrowSwitcher.getDisplayedChild() == CHILD_LOADING;
+  }
+
+  public boolean isArrowVisible() {
+    return arrowSwitcher != null
+        && arrowSwitcher.getVisibility() == View.VISIBLE
+        && arrowSwitcher.getDisplayedChild() == CHILD_ARROW;
   }
 }

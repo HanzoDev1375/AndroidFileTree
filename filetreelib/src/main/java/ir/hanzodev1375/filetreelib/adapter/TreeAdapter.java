@@ -60,9 +60,10 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
   @Nullable private OnNodeClickListener clickListener;
   @Nullable private OnNodeLongClickListener longClickListener;
   @Nullable private OnSelectionModeChangeListener selectionModeListener;
+  @NonNull private final Map<Integer, TreeViewHolder> viewHolderCache = new HashMap<>();
+  private int customIconArrowRes = 0;
 
   private boolean selectionMode = false;
-
   private int diffRequestId = 0;
 
   private final ExecutorService diffExecutor =
@@ -92,17 +93,10 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
                   @NonNull TreeNode parent, @NonNull List<TreeNode> inserted, int insertPos) {
                 int parentPos = currentList.indexOf(parent);
                 if (parentPos >= 0 && insertPos == parentPos + 1 && !inserted.isEmpty()) {
-                  // Fast path: we already know exactly where and what to insert, so
-                  // mutate the adapter's list directly and notify RecyclerView right
-                  // away — this skips the background DiffUtil pass (+ thread hop),
-                  // which is what made expanding large folders (20-30+ items) visibly
-                  // lag behind the actual (instant) load.
                   currentList.addAll(insertPos, inserted);
                   notifyItemRangeInserted(insertPos, inserted.size());
                   notifyItemChanged(parentPos, Boolean.TRUE);
                 } else {
-                  // Fallback for edge cases (currentList out of sync with visibleList,
-                  // e.g. a diff from a previous op is still in flight): full re-diff.
                   submitNewList(visibleList.snapshot());
                   if (parentPos >= 0) {
                     mainHandler.post(() -> notifyItemChanged(parentPos, Boolean.TRUE));
@@ -135,8 +129,6 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
 
               @Override
               public void onLazyLoadStateChanged(@NonNull TreeNode node) {
-                // No rows are inserted/removed here — just flip this single row's
-                // arrow into/out of its inline loading spinner via a payload bind.
                 int pos = currentList.indexOf(node);
                 if (pos >= 0) {
                   mainHandler.post(() -> notifyItemChanged(pos, Boolean.TRUE));
@@ -149,7 +141,6 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
         .addListener(
             ids -> {
               notifySelectionChanged(ids);
-
               if (selectionModeListener != null) {
                 selectionModeListener.onSelectionCountChanged(ids.size());
               }
@@ -171,7 +162,6 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
         notifyItemChanged(i, Boolean.TRUE);
       }
     }
-
     lastSelectionState.clear();
     for (String id : newIds) {
       lastSelectionState.put(id, Boolean.TRUE);
@@ -187,7 +177,11 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
 
   @Override
   public void onBindViewHolder(@NonNull TreeViewHolder holder, int position) {
+    viewHolderCache.put(position, holder);
     this.holder = holder;
+    if (customIconArrowRes != 0) {
+      holder.setIconArrow(customIconArrowRes);
+    }
     TreeNode node = currentList.get(position);
     SearchResult sr = searchResults.get(node.getId());
     boolean isCut =
@@ -235,6 +229,28 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
     } else {
       onBindViewHolder(holder, position);
     }
+    if (customIconArrowRes != 0) {
+      holder.setIconArrow(customIconArrowRes);
+    }
+  }
+
+  @Override
+  public void onViewRecycled(@NonNull TreeViewHolder holder) {
+    super.onViewRecycled(holder);
+    int position = holder.getAdapterPosition();
+    if (position != RecyclerView.NO_POSITION) {
+      viewHolderCache.remove(position);
+    }
+    if (this.holder == holder) {
+      this.holder = null;
+    }
+  }
+
+  @Override
+  public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+    super.onDetachedFromRecyclerView(recyclerView);
+    viewHolderCache.clear();
+    this.holder = null;
   }
 
   @Override
@@ -343,6 +359,68 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
   }
 
   public void setShowIconFolderAndFile(boolean bool) {
-    holder.setShowIconFolderAndFile(bool);
+    if (holder != null) {
+      holder.setShowIconFolderAndFile(bool);
+    }
+    for (TreeViewHolder vh : viewHolderCache.values()) {
+      vh.setShowIconFolderAndFile(bool);
+    }
+  }
+
+  public void setIconArrow(int icon) {
+    this.customIconArrowRes = icon;
+    for (TreeViewHolder vh : viewHolderCache.values()) {
+      vh.setIconArrow(icon);
+      vh.getIvArrow().setImageResource(icon);
+    }
+    if (holder != null) {
+      holder.setIconArrow(icon);
+      holder.getIvArrow().setImageResource(icon);
+    }
+    notifyItemRangeChanged(0, currentList.size());
+  }
+
+  @Nullable
+  public TreeViewHolder getViewHolderSafe(int position) {
+    TreeViewHolder cached = viewHolderCache.get(position);
+    if (cached != null && cached.getAdapterPosition() != RecyclerView.NO_POSITION) {
+      return cached;
+    }
+    return null;
+  }
+
+  @Nullable
+  public TreeViewHolder getFirstViewHolder() {
+    return viewHolderCache.isEmpty() ? null : viewHolderCache.values().iterator().next();
+  }
+
+  @Nullable
+  public TreeViewHolder getViewHolderIfValid(int position) {
+    if (position < 0 || position >= currentList.size()) {
+      return null;
+    }
+    TreeViewHolder vh = getViewHolderSafe(position);
+    if (vh == null) {
+      RecyclerView recyclerView =
+          (RecyclerView) viewHolderCache.values().iterator().next().itemView.getParent();
+      if (recyclerView != null) {
+        RecyclerView.ViewHolder found = recyclerView.findViewHolderForAdapterPosition(position);
+        if (found instanceof TreeViewHolder) {
+          vh = (TreeViewHolder) found;
+          viewHolderCache.put(position, vh);
+        }
+      }
+    }
+    return vh;
+  }
+
+  @Nullable
+  public TreeViewHolder getCurrentHolder() {
+    return holder;
+  }
+
+  @NonNull
+  public Map<Integer, TreeViewHolder> getViewHolderCache() {
+    return new HashMap<>(viewHolderCache);
   }
 }

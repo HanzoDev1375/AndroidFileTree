@@ -15,6 +15,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.sidesheet.SideSheetBehavior;
 import com.google.android.material.sidesheet.SideSheetDialog;
 import ir.hanzodev1375.filetreeapp.databinding.ActivityMainBinding;
+import ir.hanzodev1375.filetreelib.model.FilePayload;
 import ir.hanzodev1375.filetreelibglide.FileIconGlide;
 import ir.hanzodev1375.filetreelib.widget.FileTreeView;
 
@@ -46,7 +47,9 @@ public class MainActivity extends AppCompatActivity {
     view.setPadding(10, 10, 10, 10);
     view.setZoomMod(true);
     view.setZoomScale(50, 300);
+    view.setIconArrow(R.drawable.ic_badge_error);
     view.setNodePath("/storage/emulated/0/");
+    view.setGitStatus("/storage/emulated/0/AndroidIDEProjects/Ghostide33", FilePayload.GIT_MODIFIED);
     view.loadTree();
     int[] colors = {
       Color.parseColor("#FFD9FF00"),
@@ -61,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     };
     view.setRainbowIndentGuideColors(colors);
     view.setRainbowIndentGuides(true);
+
     view.setClickNode(
         (node, views) -> {
           Toast.makeText(getApplication(), node.getAbsolutePath(), Toast.LENGTH_LONG).show();

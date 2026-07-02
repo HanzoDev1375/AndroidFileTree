@@ -12,6 +12,7 @@ import android.util.AttributeSet;
 import android.widget.PopupMenu;
 import androidx.annotation.NonNull;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputLayout;
 import ir.hanzodev1375.filetreelib.R;
 import ir.hanzodev1375.filetreelib.core.TreeController;
 import ir.hanzodev1375.filetreelib.adapter.TreeAdapter;
@@ -48,13 +49,14 @@ public class FileTreeView extends LinearLayout {
   private ThemeManager theme;
   private ClipboardManager clipboard;
   private FileWatcher fileWatcher;
-
+  private boolean showSearchBar = false;
   private TreeSearchEngine searchEngine;
   private TreeFilter treeFilter;
   private ExecutorService searchExecutor;
   private List<TreeNode> fullVisibleSnapshot = null;
   private TreeNode lastOpenedFolder = null;
   private OnNodeCallBack click;
+  private int pendingIconArrowRes = 0;
 
   public FileTreeView(Context context) {
     super(context);
@@ -81,6 +83,10 @@ public class FileTreeView extends LinearLayout {
     scrollContainer = v.findViewById(R.id.two_d_scroll_view);
     selectionPanel = v.findViewById(R.id.selectionPanel);
     EditText etSearch = v.findViewById(R.id.et_search);
+    TextInputLayout nodesearch = v.findViewById(R.id.nodesearch);
+    if (!showSearchBar) {
+      nodesearch.setVisibility(View.GONE);
+    } else nodesearch.setVisibility(View.VISIBLE);
 
     theme = new ThemeManager(getContext());
     clipboard = new ClipboardManager();
@@ -178,7 +184,9 @@ public class FileTreeView extends LinearLayout {
 
     if (adapter != null) {
       adapter.setClipboardManager(clipboard);
-
+      if (pendingIconArrowRes != 0) {
+        adapter.setIconArrow(pendingIconArrowRes);
+      }
       adapter.setOnNodeClickListener(
           (node, view) -> {
             if (node.isFolder()) {
@@ -562,7 +570,24 @@ public class FileTreeView extends LinearLayout {
     if (treeView != null) treeView.setRainbowIndentGuideColors(colors);
   }
 
+  /** SetOnClick Item see#OnNodeCallBack(#TreeNode,#View) */
   public void setClickNode(OnNodeCallBack click) {
     this.click = click;
+  }
+
+  /** setIconArrow(#int) setCustomItemArrow adding new api */
+  public void setIconArrow(int icon) {
+    this.pendingIconArrowRes = icon;
+    if (adapter != null) {
+      adapter.setIconArrow(icon);
+    }
+  }
+
+  public boolean getShowSearchBar() {
+    return this.showSearchBar;
+  }
+
+  public void setShowSearchBar(boolean showSearchBar) {
+    this.showSearchBar = showSearchBar;
   }
 }
