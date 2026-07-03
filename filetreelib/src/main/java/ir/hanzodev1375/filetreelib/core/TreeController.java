@@ -90,6 +90,17 @@ public final class TreeController {
     void onCreateFailed(@NonNull String name, @NonNull Exception error);
   }
 
+  /**
+   * Notified after {@link #revealNode(TreeNode)} has expanded the node's ancestors. The listener is
+   * responsible for the actual scrolling — {@code TreeController} only owns expand/collapse state,
+   * not the RecyclerView/scroll machinery, so {@link ir.hanzodev1375.filetreelib.widget.TreeView}
+   * is the one that installs this.
+   */
+  public interface OnRevealListener {
+    @MainThread
+    void onNodeRevealed(@NonNull TreeNode node);
+  }
+
   // -------------------------------------------------------------------------
   // Fields
   // -------------------------------------------------------------------------
@@ -102,6 +113,7 @@ public final class TreeController {
   @NonNull private final VisibleNodeList visibleList;
   @NonNull private final ExecutorService backgroundExecutor;
   @NonNull private final Handler mainHandler;
+  @Nullable private OnRevealListener revealListener;
 
   // -------------------------------------------------------------------------
   // Constructor (via Builder)
@@ -173,14 +185,25 @@ public final class TreeController {
   }
 
   /**
-   * Expands all ancestors of {@code node} so it becomes visible, then scrolls the RecyclerView to
-   * it.
+   * Expands all ancestors of {@code node} so it becomes visible, then — if a listener is installed
+   * via {@link #setOnRevealListener} — asks it to scroll the node into view.
    *
    * @param node the node to reveal
    */
   @MainThread
   public void revealNode(@NonNull TreeNode node) {
     expandManager.expandToNode(node);
+    if (revealListener != null) revealListener.onNodeRevealed(node);
+  }
+
+  /**
+   * Installs the listener responsible for scrolling to a node after {@link #revealNode} expands its
+   * ancestors. {@link ir.hanzodev1375.filetreelib.widget.TreeView} installs this itself during
+   * {@code setup()} — most callers don't need to touch this directly.
+   */
+  @MainThread
+  public void setOnRevealListener(@Nullable OnRevealListener listener) {
+    this.revealListener = listener;
   }
 
   /**
@@ -284,14 +307,15 @@ public final class TreeController {
                   ir.hanzodev1375.filetreelib.model.FilePayload p =
                       node.getPayload(ir.hanzodev1375.filetreelib.model.FilePayload.class);
                   if (p != null) {
-                    String newPath = new java.io.File(
-                        new java.io.File(p.getAbsolutePath()).getParent(), newName)
-                        .getAbsolutePath();
+                    String newPath =
+                        new java.io.File(new java.io.File(p.getAbsolutePath()).getParent(), newName)
+                            .getAbsolutePath();
                     node.setId(newPath);
                     // FilePayload.absolutePath is immutable — rebuild a fresh payload so
                     // getFileName()/getExtension()/getParentPath() reflect the new name too.
                     ir.hanzodev1375.filetreelib.model.FilePayload.Builder pb =
-                        new ir.hanzodev1375.filetreelib.model.FilePayload.Builder(newPath, p.isDirectory())
+                        new ir.hanzodev1375.filetreelib.model.FilePayload.Builder(
+                                newPath, p.isDirectory())
                             .mimeType(p.getMimeType())
                             .size(p.getSize())
                             .lastModified(p.getLastModified())
@@ -787,8 +811,8 @@ public final class TreeController {
   /**
    * Updates the model and the moved node's identity (id + {@code FilePayload}) after {@code node}
    * has already been physically moved on disk into {@code newParent} by the caller. Mirrors the
-   * id/payload refresh done in {@link #renameNode}, since the node's old absolute path is no
-   * longer valid once it has been moved.
+   * id/payload refresh done in {@link #renameNode}, since the node's old absolute path is no longer
+   * valid once it has been moved.
    *
    * @param node the node that was moved (already relocated on disk by the caller)
    * @param newParent the node's new parent

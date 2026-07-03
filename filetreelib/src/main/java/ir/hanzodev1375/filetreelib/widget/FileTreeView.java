@@ -57,6 +57,8 @@ public class FileTreeView extends LinearLayout {
   private TreeNode lastOpenedFolder = null;
   private OnNodeCallBack click;
   private int pendingIconArrowRes = 0;
+  private BreadcrumbBar breadcrumbbar;
+  private TreeNode rootTreeNode;
 
   public FileTreeView(Context context) {
     super(context);
@@ -82,18 +84,61 @@ public class FileTreeView extends LinearLayout {
     treeView = v.findViewById(R.id.tree_view);
     scrollContainer = v.findViewById(R.id.two_d_scroll_view);
     selectionPanel = v.findViewById(R.id.selectionPanel);
+    breadcrumbbar = v.findViewById(R.id.breadcrumb_bar);
+
     EditText etSearch = v.findViewById(R.id.et_search);
     TextInputLayout nodesearch = v.findViewById(R.id.nodesearch);
     if (!showSearchBar) {
       nodesearch.setVisibility(View.GONE);
     } else nodesearch.setVisibility(View.VISIBLE);
-
     theme = new ThemeManager(getContext());
     clipboard = new ClipboardManager();
     fileWatcher = new FileWatcher();
     searchEngine = new TreeSearchEngine();
     treeFilter = new TreeFilter();
     searchExecutor = Executors.newSingleThreadScheduledExecutor();
+    breadcrumbbar.setTheme(theme);
+    // NOTE: root path is set from loadTree() once nodePath/rootDir are known — calling it here
+    // would pass null (setNodePath() hasn't run yet) and blow up in BreadcrumbBar.splitPath().
+    breadcrumbbar.setOnSegmentClickListener(
+        new BreadcrumbBar.OnSegmentClickListener() {
+          @Override
+          public void onRootSegmentClick(@NonNull String path) {
+            // Tapped a root-path segment -> re-root the whole tree there.
+            setNodePath(path);
+            loadTree();
+          }
+
+          @Override
+          public void onNodeSegmentClick(@NonNull TreeNode node) {
+            // Tapped a node segment -> just reveal it in the tree that's already loaded.
+            if (controller == null) return;
+            controller.revealNode(node);
+            breadcrumbbar.setSelectedNode(node, rootTreeNode);
+          }
+        });
+
+    fileWatcher.addListener(
+        new FileWatcher.FileChangeListener() {
+          @Override
+          public void onFileCreated(@NonNull String path) {
+            refreshParent(path);
+          }
+
+          @Override
+          public void onFileDeleted(@NonNull String path) {
+            refreshParent(path);
+          }
+
+          @Override
+          public void onFileModified(@NonNull String path) {}
+
+          @Override
+          public void onFileRenamed(@NonNull String o, @NonNull String n) {
+            refreshParent(n);
+          }
+        });
+
     etSearch.addTextChangedListener(
         new TextWatcher() {
           @Override
@@ -157,6 +202,12 @@ public class FileTreeView extends LinearLayout {
   }
 
   public void loadTree() {
+    // loadTree() can now be called more than once per view (the breadcrumb re-roots the tree by
+    // calling it again) — tear down what the previous call created so we don't leak the old
+    // background executor or keep watching a directory we no longer show.
+    if (controller != null) controller.destroy();
+    if (fileWatcher != null) fileWatcher.unwatchAll();
+
     File rootDir = new File(getNodePath());
     FilePayload rootPayload = new FilePayload.Builder(rootDir.getAbsolutePath(), true).build();
     TreeNode rootNode = TreeNode.root();
@@ -169,6 +220,7 @@ public class FileTreeView extends LinearLayout {
             .setPayload(rootPayload)
             .build();
     rootNode.addChild(storageNode);
+    rootTreeNode = storageNode;
 
     TreeModel model = new TreeModel(rootNode);
     FileTreeProvider provider = new FileTreeProvider();
@@ -178,6 +230,10 @@ public class FileTreeView extends LinearLayout {
 
     treeView.setup(controller, theme);
     adapter = treeView.getTreeAdapter();
+
+    // Fresh tree -> breadcrumb shows just the root path segments (clears any previously
+    // selected-node extension from the tree we just replaced).
+    breadcrumbbar.setRootPath(rootDir.getAbsolutePath());
 
     DragManager dragManager = new DragManager(controller);
     treeView.attachDragManager(dragManager);
@@ -189,6 +245,7 @@ public class FileTreeView extends LinearLayout {
       }
       adapter.setOnNodeClickListener(
           (node, view) -> {
+            breadcrumbbar.setSelectedNode(node, rootTreeNode);
             if (node.isFolder()) {
               lastOpenedFolder = node;
               controller.toggleNode(node);
@@ -340,26 +397,6 @@ public class FileTreeView extends LinearLayout {
           public void onSelectionCleared() {}
         });
 
-    fileWatcher.addListener(
-        new FileWatcher.FileChangeListener() {
-          @Override
-          public void onFileCreated(@NonNull String path) {
-            refreshParent(path);
-          }
-
-          @Override
-          public void onFileDeleted(@NonNull String path) {
-            refreshParent(path);
-          }
-
-          @Override
-          public void onFileModified(@NonNull String path) {}
-
-          @Override
-          public void onFileRenamed(@NonNull String o, @NonNull String n) {
-            refreshParent(n);
-          }
-        });
     fileWatcher.watch(rootDir.getAbsolutePath());
   }
 
