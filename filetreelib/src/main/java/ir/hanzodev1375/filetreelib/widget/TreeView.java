@@ -1,6 +1,7 @@
 package ir.hanzodev1375.filetreelib.widget;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
 import android.content.res.TypedArray;
@@ -23,6 +24,7 @@ import ir.hanzodev1375.filetreelib.decoration.TreeDecoration;
 import ir.hanzodev1375.filetreelib.drag.DragManager;
 import ir.hanzodev1375.filetreelib.theme.ThemeManager;
 import ir.hanzodev1375.filetreelib.widget.TwoDScrollView;
+import java.util.List;
 
 public final class TreeView extends RecyclerView {
 
@@ -148,8 +150,8 @@ public final class TreeView extends RecyclerView {
             new ir.hanzodev1375.filetreelib.core.TreeModel.TreeModelListener() {
               @Override
               public void onNodesInserted(
-                  @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
-                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> insertedNodes,
+                  @NonNull TreeNode parent,
+                  @NonNull List<TreeNode> insertedNodes,
                   int startIndex) {
                 modelSyncHandler.removeCallbacks(modelSyncRunnable);
                 modelSyncHandler.post(modelSyncRunnable);
@@ -157,8 +159,8 @@ public final class TreeView extends RecyclerView {
 
               @Override
               public void onNodesRemoved(
-                  @NonNull ir.hanzodev1375.filetreelib.core.TreeNode parent,
-                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> removedNodes,
+                  @NonNull TreeNode parent,
+                  @NonNull List<TreeNode> removedNodes,
                   int startIndex) {
                 modelSyncHandler.removeCallbacks(modelSyncRunnable);
                 modelSyncHandler.post(modelSyncRunnable);
@@ -166,7 +168,7 @@ public final class TreeView extends RecyclerView {
 
               @Override
               public void onNodesChanged(
-                  @NonNull java.util.List<ir.hanzodev1375.filetreelib.core.TreeNode> changedNodes) {
+                  @NonNull List<TreeNode> changedNodes) {
                 // Name/icon change only — no structure rebuild needed
                 treeAdapter.submitNewList(controller.getVisibleList().snapshot());
               }
@@ -177,6 +179,55 @@ public final class TreeView extends RecyclerView {
                 modelSyncHandler.post(modelSyncRunnable);
               }
             });
+
+    // revealNode() only expands ancestors on the TreeController side (it has no concept of
+    // RecyclerView/ViewHolders); the actual "scroll it into view" step happens here.
+    controller.setOnRevealListener(node -> revealOnScreen(node, 0));
+  }
+
+  private static final int REVEAL_MAX_ATTEMPTS = 8;
+
+  /**
+   * Waits (retrying across a few frames, bounded) for {@code node}'s row to exist as a laid-out
+   * ViewHolder after an expand — expansion resolves synchronously most of the time, but falls back
+   * to an async diff pass for edge cases (see {@code TreeAdapter}'s ExpandListener) — then asks
+   * that row to scroll itself on-screen. {@code TwoDScrollView} is the actual scroll owner and
+   * already implements {@code requestChildRectangleOnScreen} (see its class doc), so no manual
+   * scroll-offset math is needed here.
+   */
+  private void revealOnScreen(@NonNull TreeNode node, int attempt) {
+    if (treeAdapter == null || attempt > REVEAL_MAX_ATTEMPTS) return;
+
+    int position = positionOf(node);
+    if (position < 0) {
+      post(() -> revealOnScreen(node, attempt + 1));
+      return;
+    }
+
+    ViewHolder vh = findViewHolderForAdapterPosition(position);
+    if (vh == null) {
+      scrollToPosition(position); // nudge RecyclerView to create/bind the row
+      post(() -> revealOnScreen(node, attempt + 1));
+      return;
+    }
+
+    View itemView = vh.itemView;
+    if (itemView.getWidth() == 0 && itemView.getHeight() == 0) {
+      post(() -> revealOnScreen(node, attempt + 1)); // bound but not yet laid out
+      return;
+    }
+    itemView.requestRectangleOnScreen(
+        new Rect(0, 0, itemView.getWidth(), itemView.getHeight()), false);
+  }
+
+  private int positionOf(@NonNull TreeNode node) {
+    if (treeAdapter == null) return -1;
+    java.util.List<TreeNode> list = treeAdapter.getCurrentList();
+    String id = node.getId();
+    for (int i = 0; i < list.size(); i++) {
+      if (list.get(i).getId().equals(id)) return i;
+    }
+    return -1;
   }
 
   /** Attach the DragManager — call after setup(). */

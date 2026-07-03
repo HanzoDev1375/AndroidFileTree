@@ -2,16 +2,23 @@
 <LinearLayout
      xmlns:android="http://schemas.android.com/apk/res/android"
      xmlns:app="http://schemas.android.com/apk/res-auto"
+     xmlns:tools="http://schemas.android.com/tools"
      android:layout_height="match_parent"
      android:layout_width="match_parent"
      android:orientation="vertical">
 
+    <ir.hanzodev1375.filetreelib.widget.BreadcrumbBar
+         android:layout_height="wrap_content"
+         android:layout_width="match_parent"
+         tools:viewBehavior="LinearLayout_vertical"
+         android:id="@+id/breadcrumb_bar" />
+
     <com.google.android.material.textfield.TextInputLayout
          android:layout_height="wrap_content"
+         android:layout_width="match_parent"
          android:layout_marginEnd="4dp"
          android:layout_marginStart="4dp"
-         android:id="@+id/nodesearch"
-         android:layout_width="match_parent">
+         android:id="@+id/nodesearch">
 
         <com.google.android.material.textfield.TextInputEditText
              android:layout_height="match_parent"
@@ -28,12 +35,14 @@
     <ir.hanzodev1375.filetreelib.widget.TwoDScrollView
          android:layout_height="0dp"
          android:layout_width="match_parent"
+         tools:viewBehavior="LinearLayout_vertical"
          android:layout_weight="1"
          android:id="@+id/two_d_scroll_view">
 
         <ir.hanzodev1375.filetreelib.widget.TreeView
              android:layout_height="wrap_content"
              android:layout_width="wrap_content"
+             tools:viewBehavior="LinearLayout_vertical"
              app:tv_animateDuration="180"
              app:tv_showTreeLines="true"
              app:tv_animateExpand="true"
@@ -46,6 +55,7 @@
          android:layout_height="wrap_content"
          android:layout_width="match_parent"
          android:visibility="gone"
+         tools:viewBehavior="LinearLayout_vertical"
          android:background="?colorSurface"
          android:elevation="8dp"
          android:id="@+id/selectionPanel" />
