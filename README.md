@@ -9,6 +9,14 @@ A production-ready Android TreeView library for building modern file explorers s
 
 </div>
 
+---
+
+# Note
+
+- If implementation is difficult for you, use `FileTreeView` for help.
+
+
+---
 
 ## Features
 
