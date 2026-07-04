@@ -227,6 +227,39 @@ public final class TreeController {
   }
 
   // -------------------------------------------------------------------------
+  // Virtual grouping
+  // -------------------------------------------------------------------------
+
+  /**
+   * Inserts a synthetic "group" node — one that doesn't correspond to a single real filesystem
+   * entry — as a child of {@code parent}. Useful for gathering unrelated files under one logical
+   * heading, the way Android Studio's own "Gradle Scripts" node lists build files that actually
+   * live in several different real directories.
+   *
+   * <p>Build {@code group}'s subtree first (via repeated {@link TreeNode#addChild}, typically real
+   * file nodes each carrying their own {@link ir.hanzodev1375.filetreelib.model.FilePayload} so
+   * tapping one opens the real file) — insertion into the live model only needs to happen once, at
+   * the top. {@code group} itself should be of type {@link TreeNode#TYPE_VIRTUAL} and not yet
+   * attached to any parent.
+   *
+   * @param parent the parent to receive the group (e.g. the tree's root node)
+   * @param group the not-yet-attached group node, with its children already populated
+   * @param index insertion index within {@code parent}'s children, or a negative number to append
+   *     it last
+   */
+  @MainThread
+  public void insertVirtualGroup(@NonNull TreeNode parent, @NonNull TreeNode group, int index) {
+    if (index < 0 || index > parent.getChildCount()) {
+      model.insertNode(parent, group);
+    } else {
+      model.insertNodeAt(parent, index, group);
+    }
+    if (!parent.isExpanded()) {
+      expandManager.expand(parent);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Selection
   // -------------------------------------------------------------------------
 
@@ -281,6 +314,14 @@ public final class TreeController {
   @MainThread
   public void renameNode(
       @NonNull TreeNode node, @NonNull String newName, @Nullable RenameCallback callback) {
+
+    if (node.isVirtual()) {
+      if (callback != null) {
+        callback.onRenameFailed(
+            node, new IllegalStateException("Virtual folders (e.g. \"Gradle Scripts\", \"res\") can't be renamed"));
+      }
+      return;
+    }
 
     if (newName.isEmpty()) {
       if (callback != null) {
@@ -374,6 +415,22 @@ public final class TreeController {
     // parent already removes it, so processing it again would fail against a path that no
     // longer exists.
     toDelete = ir.hanzodev1375.filetreelib.utils.TreeUtils.filterTopLevel(toDelete);
+
+    // Virtual folders (synthetic groupings like "Gradle Scripts", "res") have no real filesystem
+    // entry of their own — the data provider would just skip them and delete nothing, but the
+    // node would still disappear from the tree, looking like it worked when it didn't. Reject the
+    // whole batch instead of silently deleting only the real nodes in the selection.
+    List<TreeNode> virtualNodes = new ArrayList<>();
+    for (TreeNode n : toDelete) {
+      if (n.isVirtual()) virtualNodes.add(n);
+    }
+    if (!virtualNodes.isEmpty()) {
+      if (callback != null) {
+        callback.onDeleteFailed(
+            virtualNodes, new IllegalStateException("Virtual folders can't be deleted"));
+      }
+      return;
+    }
 
     final List<TreeNode> snapshot = new ArrayList<>(toDelete);
 
@@ -816,25 +873,32 @@ public final class TreeController {
    *
    * @param node the node that was moved (already relocated on disk by the caller)
    * @param newParent the node's new parent
+   * @param resolvedPath the exact absolute path the node ended up at — from {@link
+   *     TreeDataProvider#moveNodes}'s return value, NOT recomputed as "newParent + node's old
+   *     name" here, since the provider may have appended " (1)" etc. to avoid overwriting an
+   *     existing same-named file. Using a guessed path instead of this would desync the node's id
+   *     from where the file actually is, and every move after that would silently fail (the
+   *     provider would look for the file at the wrong, stale path and find nothing there).
    */
   @MainThread
-  public void applyMovedNode(@NonNull TreeNode node, @NonNull TreeNode newParent) {
+  public void applyMovedNode(
+      @NonNull TreeNode node, @NonNull TreeNode newParent, @NonNull String resolvedPath) {
     final String oldId = node.getId();
     final boolean wasSelected = node.isSelected();
 
     int newIndex = findAlphabeticalInsertIndex(newParent, node, node.getType());
     model.moveNode(node, newParent, newIndex);
 
-    ir.hanzodev1375.filetreelib.model.FilePayload np =
-        newParent.getPayload(ir.hanzodev1375.filetreelib.model.FilePayload.class);
     ir.hanzodev1375.filetreelib.model.FilePayload p =
         node.getPayload(ir.hanzodev1375.filetreelib.model.FilePayload.class);
-    if (np != null && p != null) {
-      String newPath = new java.io.File(np.getAbsolutePath(), node.getName()).getAbsolutePath();
-      node.setId(newPath);
+    if (p != null) {
+      node.setId(resolvedPath);
       // FilePayload.absolutePath is immutable — rebuild a fresh payload, same as renameNode().
+      // Also refresh the display name in case the resolved path's file name differs from the
+      // node's old name (e.g. "(1)" was appended to avoid a conflict).
+      node.setName(new java.io.File(resolvedPath).getName());
       ir.hanzodev1375.filetreelib.model.FilePayload.Builder pb =
-          new ir.hanzodev1375.filetreelib.model.FilePayload.Builder(newPath, p.isDirectory())
+          new ir.hanzodev1375.filetreelib.model.FilePayload.Builder(resolvedPath, p.isDirectory())
               .mimeType(p.getMimeType())
               .size(p.getSize())
               .lastModified(p.getLastModified())

@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 import ir.hanzodev1375.filetreelib.core.TreeNode;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Abstract data source for the tree. Implement this to connect the tree to any backend: real
@@ -46,9 +47,19 @@ public interface TreeDataProvider {
   @WorkerThread
   void copyNodes(@NonNull List<TreeNode> nodes, @NonNull TreeNode destination) throws Exception;
 
-  /** Moves nodes to the destination parent. Called on a background thread. */
+  /**
+   * Moves nodes to the destination parent. Called on a background thread.
+   *
+   * @return the actual absolute path each successfully-moved node ended up at, keyed by the
+   *     original node. This can differ from the naive "destination + name" guess if a
+   *     same-named file/folder already existed there — implementations are expected to resolve
+   *     that conflict (e.g. by appending " (1)") rather than overwrite, so callers must use the
+   *     returned path (not recompute their own) when updating the node's identity afterward.
+   */
   @WorkerThread
-  void moveNodes(@NonNull List<TreeNode> nodes, @NonNull TreeNode destination) throws Exception;
+  @NonNull
+  Map<TreeNode, String> moveNodes(@NonNull List<TreeNode> nodes, @NonNull TreeNode destination)
+      throws Exception;
 
   /**
    * Copies or moves {@code nodes} into {@code destination}. Called on a background thread.

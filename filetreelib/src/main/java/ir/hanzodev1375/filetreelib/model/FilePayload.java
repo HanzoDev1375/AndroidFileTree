@@ -85,6 +85,20 @@ public final class FilePayload implements Parcelable {
    */
   @Nullable private String badge;
 
+  /**
+   * Optional short, secondary text rendered right after the node name in a dimmer color — e.g. "
+   * (Project: Build)" for a Gradle-script-style grouped view. {@code null}/empty means nothing is
+   * shown.
+   */
+  @Nullable private String description;
+
+  /**
+   * Optional solid color for a small dot drawn over the bottom-right corner of the node's icon —
+   * e.g. a module-type indicator like Android Studio's colored circle on module folders. {@code 0}
+   * (transparent) means no dot is drawn.
+   */
+  private int badgeColor;
+
   // -------------------------------------------------------------------------
   // Constructor
   // -------------------------------------------------------------------------
@@ -101,6 +115,8 @@ public final class FilePayload implements Parcelable {
     this.warningCount = builder.warningCount;
     this.bookmarked = builder.bookmarked;
     this.badge = builder.badge;
+    this.description = builder.description;
+    this.badgeColor = builder.badgeColor;
   }
 
   // -------------------------------------------------------------------------
@@ -119,6 +135,8 @@ public final class FilePayload implements Parcelable {
     warningCount = in.readInt();
     bookmarked = in.readByte() != 0;
     badge = in.readString();
+    description = in.readString();
+    badgeColor = in.readInt();
   }
 
   @Override
@@ -134,6 +152,8 @@ public final class FilePayload implements Parcelable {
     dest.writeInt(warningCount);
     dest.writeByte((byte) (bookmarked ? 1 : 0));
     dest.writeString(badge);
+    dest.writeString(description);
+    dest.writeInt(badgeColor);
   }
 
   @Override
@@ -286,6 +306,33 @@ public final class FilePayload implements Parcelable {
   }
 
   /**
+   * Returns the secondary/description text shown after the node name (e.g. "(Project: Build)"),
+   * or {@code null} if none is set.
+   */
+  @Nullable
+  public String getDescription() {
+    return description;
+  }
+
+  /** Sets the secondary/description text. Pass {@code null} or empty to hide it. */
+  public void setDescription(@Nullable String description) {
+    this.description = description;
+  }
+
+  /**
+   * Returns the color of the small dot drawn on the node's icon (e.g. a module-type indicator), or
+   * {@code 0} (transparent) if no dot should be drawn.
+   */
+  public int getBadgeColor() {
+    return badgeColor;
+  }
+
+  /** Sets the icon dot color. Pass {@code 0} (transparent) to hide it. */
+  public void setBadgeColor(int badgeColor) {
+    this.badgeColor = badgeColor;
+  }
+
+  /**
    * Returns a human-readable file size string (e.g. "4.2 KB", "1.3 MB"). Returns an empty string
    * for directories.
    */
@@ -361,6 +408,8 @@ public final class FilePayload implements Parcelable {
     private int warningCount = 0;
     private boolean bookmarked = false;
     @Nullable private String badge;
+    @Nullable private String description;
+    private int badgeColor = 0;
 
     /**
      * Creates a builder for the given absolute path.
@@ -435,6 +484,18 @@ public final class FilePayload implements Parcelable {
 
     public Builder badge(@Nullable String badge) {
       this.badge = badge;
+      return this;
+    }
+
+    /** Secondary text shown after the node name in a dimmer color, e.g. "(Project: Build)". */
+    public Builder description(@Nullable String description) {
+      this.description = description;
+      return this;
+    }
+
+    /** Color of the small dot drawn on the node's icon, e.g. a module-type indicator. */
+    public Builder badgeColor(int badgeColor) {
+      this.badgeColor = badgeColor;
       return this;
     }
 

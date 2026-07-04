@@ -1,5 +1,6 @@
 package ir.hanzodev1375.filetreelib.adapter;
 
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.text.SpannableString;
 import android.text.style.BackgroundColorSpan;
@@ -10,6 +11,7 @@ import android.widget.TextView;
 import android.widget.ViewFlipper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.widget.ImageViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import ir.hanzodev1375.filetreelib.R;
 import ir.hanzodev1375.filetreelib.core.FileIconHelper;
@@ -32,7 +34,9 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
   final ViewFlipper arrowSwitcher;
   final ImageView ivArrow;
   final ImageView ivIcon;
+  final ImageView ivIconBadge;
   final TextView tvName;
+  final TextView tvDescription;
   final TextView tvBadge;
   final ImageView ivBadgeIcon;
   final View indentSpacer;
@@ -47,7 +51,9 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     arrowSwitcher = itemView.findViewById(R.id.tv_arrow_switcher);
     ivArrow = itemView.findViewById(R.id.tv_arrow);
     ivIcon = itemView.findViewById(R.id.tv_icon);
+    ivIconBadge = itemView.findViewById(R.id.tv_icon_badge);
     tvName = itemView.findViewById(R.id.tv_name);
+    tvDescription = itemView.findViewById(R.id.tv_description);
     tvBadge = itemView.findViewById(R.id.tv_badge);
     ivBadgeIcon = itemView.findViewById(R.id.tv_badge_icon);
     indentSpacer = itemView.findViewById(R.id.tv_indent);
@@ -138,6 +144,21 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       }
     } else {
       tvName.setTextColor(theme.getTextColor());
+    }
+
+    if (payload != null && payload.getDescription() != null && !payload.getDescription().isEmpty()) {
+      tvDescription.setText(payload.getDescription());
+      tvDescription.setTextColor(theme.getSecondaryTextColor());
+      tvDescription.setVisibility(View.VISIBLE);
+    } else {
+      tvDescription.setVisibility(View.GONE);
+    }
+
+    if (payload != null && payload.getBadgeColor() != 0) {
+      ImageViewCompat.setImageTintList(ivIconBadge, ColorStateList.valueOf(payload.getBadgeColor()));
+      ivIconBadge.setVisibility(View.VISIBLE);
+    } else {
+      ivIconBadge.setVisibility(View.GONE);
     }
 
     itemRoot.setAlpha(isCut ? 0.4f : 1f);
@@ -234,6 +255,14 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
 
   public TextView getTvName() {
     return tvName;
+  }
+
+  public TextView getTvDescription() {
+    return tvDescription;
+  }
+
+  public ImageView getIvIconBadge() {
+    return ivIconBadge;
   }
 
   public TextView getTvBadge() {
