@@ -679,9 +679,10 @@ public class FileTreeView extends LinearLayout {
   private void applyAndroidMod() {
     if (controller == null || rootTreeNode == null) return;
 
-    String rootPath = rootTreeNode.getId();
+    File projectRoot = new File(rootTreeNode.getId());
+    File gradleRoot = resolveGradleRoot(projectRoot);
     boolean isGradleProject =
-        firstExisting(new File(rootPath), "settings.gradle.kts", "settings.gradle") != null;
+        firstExisting(gradleRoot, "settings.gradle.kts", "settings.gradle") != null;
     if (!isGradleProject) {
       hideFooterAction();
       return;
@@ -692,30 +693,62 @@ public class FileTreeView extends LinearLayout {
     // (lazily-loaded) children to exist first. That whole "wait for the real children to arrive,
     // then apply" dance is gone; buildAndroidModContent() below builds the whole replacement
     // subtree up front and swaps it in.
-    buildAndroidModContent(rootPath);
+    buildAndroidModContent(projectRoot, gradleRoot);
+  }
+
+  /**
+   * A Flutter project keeps its Gradle/Android module inside an {@code android/} subfolder
+   * instead of at the project root — {@code settings.gradle}/{@code build.gradle} live in {@code
+   * android/}, not next to {@code pubspec.yaml}, and the rest of the tree ({@code lib/}, {@code
+   * ios/}, {@code test/}, ...) is Dart source with nothing Gradle-related in it. Detected by
+   * {@code pubspec.yaml} at the root plus an {@code android/} folder that is itself a Gradle
+   * project; anything else is treated as a normal (non-Flutter) Android project rooted at {@code
+   * projectRoot} directly. Discovery in {@link #buildAndroidModContent} starts from whatever this
+   * returns, so for a Flutter project {@code lib/ios/test/pubspec.yaml} are never even visited —
+   * not filtered out after the fact, just never walked into.
+   */
+  @NonNull
+  private File resolveGradleRoot(@NonNull File projectRoot) {
+    File androidDir = new File(projectRoot, "android");
+    boolean looksLikeFlutter =
+        new File(projectRoot, "pubspec.yaml").isFile() && androidDir.isDirectory();
+    if (looksLikeFlutter
+        && firstExisting(androidDir, "settings.gradle.kts", "settings.gradle") != null) {
+      return androidDir;
+    }
+    return projectRoot;
   }
 
   /**
    * Replaces {@code rootTreeNode}'s children with exactly what Android Studio's "Android" project
-   * view shows: the flattened list of Gradle modules found anywhere under the root (however deep
-   * they're nested — a module 3 folders down still lands as a direct child, same as {@code :app}
-   * and {@code :feature:settings} both show as top-level entries in Android Studio) plus one
-   * "Gradle Scripts" group. Everything else — stray root files, non-module folders, folders that
-   * only exist to hold other folders — is intentionally left out entirely, matching the reference
-   * project's {@code buildLocalTree}/{@code buildHierarchicalTreeLocal}. This is not a filtered
-   * file browser; it's a project-structure view.
+   * view shows: the flattened list of Gradle modules found anywhere under {@code gradleRoot}
+   * (however deep they're nested — a module 3 folders down still lands as a direct child, same as
+   * {@code :app} and {@code :feature:settings} both show as top-level entries in Android Studio)
+   * plus one "Gradle Scripts" group. Everything else — stray root files, non-module folders,
+   * folders that only exist to hold other folders, and (for a Flutter project) the whole
+   * lib/ios/test/pubspec.yaml side of the tree outside {@code android/} — is intentionally left
+   * out entirely, matching the reference project's {@code buildLocalTree}/{@code
+   * buildHierarchicalTreeLocal}. This is not a filtered file browser; it's a project-structure
+   * view.
+   *
+   * @param projectRoot the actual browsed root (what {@code rootTreeNode} represents) — used for
+   *     the ".git" check, since a Flutter repo's {@code .git} lives here, not inside {@code
+   *     android/}
+   * @param gradleRoot where the Gradle project actually starts — same as {@code projectRoot} for
+   *     a plain Android project, or {@code projectRoot/android} for a Flutter one (see {@link
+   *     #resolveGradleRoot})
    */
-  private void buildAndroidModContent(@NonNull String rootPath) {
-    File rootDir = new File(rootPath);
+  private void buildAndroidModContent(@NonNull File projectRoot, @NonNull File gradleRoot) {
     List<TreeNode> scripts = new ArrayList<>();
-    addGradleFileIfExists(scripts, rootPath, "settings.gradle.kts", "settings.gradle", "(Project: Settings)");
-    addGradleFileIfExists(scripts, rootPath, "build.gradle.kts", "build.gradle", "(Project: Build)");
-    addGradleFileIfExists(scripts, rootPath, "gradle.properties", null, "(Project: Properties)");
-    addGradleFileIfExists(scripts, rootPath, "proguard-rules.pro", null, "(Project: proguard-rules)");
-    addGradleFileIfExists(scripts, rootPath, "local.properties", null, "(SDK Location)");
+    String gradleRootPath = gradleRoot.getAbsolutePath();
+    addGradleFileIfExists(scripts, gradleRootPath, "settings.gradle.kts", "settings.gradle", "(Project: Settings)");
+    addGradleFileIfExists(scripts, gradleRootPath, "build.gradle.kts", "build.gradle", "(Project: Build)");
+    addGradleFileIfExists(scripts, gradleRootPath, "gradle.properties", null, "(Project: Properties)");
+    addGradleFileIfExists(scripts, gradleRootPath, "proguard-rules.pro", null, "(Project: proguard-rules)");
+    addGradleFileIfExists(scripts, gradleRootPath, "local.properties", null, "(SDK Location)");
 
     List<TreeNode> modules = new ArrayList<>();
-    discoverAndroidModTree(rootDir, modules, scripts, new HashMap<>());
+    discoverAndroidModTree(gradleRoot, modules, scripts, new HashMap<>());
 
     // TreeNode.setChildren() is a raw structural mutation — safe only while the node isn't
     // currently expanded (no visible rows depend on its old children). Collapse first if needed,
@@ -731,7 +764,7 @@ public class FileTreeView extends LinearLayout {
           addVirtualGroup("Gradle Scripts", R.drawable.ic_filetree_folder_gradle, scripts);
     }
 
-    if (new File(rootPath, ".git").isDirectory()) {
+    if (new File(projectRoot, ".git").isDirectory()) {
       hideFooterAction();
     } else {
       setFooterAction(
