@@ -881,7 +881,15 @@ public class FileTreeView extends LinearLayout {
     File[] resFolders = resDir.listFiles(File::isDirectory);
     if (resFolders == null) return;
 
-    Set<String> virtualTypes = new HashSet<>(Arrays.asList("drawable", "layout", "mipmap", "values"));
+    // "drawable" is intentionally NOT merged by filename here — a project's drawables are
+    // spread across many densities/states/night-mode variants with mostly-distinct names, so
+    // merging would mostly just add an extra layer over browsing the qualifier folders directly.
+    // "layout"/"values" almost always benefit from the merge (a handful of well-known files
+    // shared across a couple of qualifiers). "mipmap" is merged only for launcher-icon names
+    // (see isLauncherIconName) — that's the one thing actually meant to live there; anything
+    // else a project drops in mipmap (rare) is shown ungrouped instead of forcing it into the
+    // same by-name merge.
+    Set<String> virtualTypes = new HashSet<>(Arrays.asList("layout", "mipmap", "values"));
     Map<String, List<File>> grouped = new LinkedHashMap<>();
     for (File f : resFolders) {
       String name = f.getName();
@@ -899,6 +907,7 @@ public class FileTreeView extends LinearLayout {
         continue;
       }
 
+      boolean isMipmap = base.equals("mipmap");
       TreeNode typeGroup =
           virtualGroupNode(resDir.getAbsolutePath() + "::virtual::res::" + base, base);
       Map<String, TreeNode> byFileName = new LinkedHashMap<>();
@@ -911,6 +920,14 @@ public class FileTreeView extends LinearLayout {
           if (fileName.startsWith(".")) continue;
           int dot = fileName.lastIndexOf('.');
           String nameNoExt = dot > 0 ? fileName.substring(0, dot) : fileName;
+
+          if (isMipmap && !isLauncherIconName(nameNoExt)) {
+            // Rare: some projects keep a non-launcher icon in mipmap too. There's no reason to
+            // merge it by name across qualifiers like the launcher icon — just list it plainly.
+            typeGroup.addChild(realFileNode(file));
+            continue;
+          }
+
           TreeNode fileGroup = byFileName.get(nameNoExt);
           if (fileGroup == null) {
             fileGroup =
@@ -927,6 +944,12 @@ public class FileTreeView extends LinearLayout {
       typeGroup.setHasChildren(typeGroup.getChildCount() > 0);
       resGroup.addChild(typeGroup);
     }
+  }
+
+  /** {@code ic_launcher}, {@code ic_launcher_round}, {@code ic_launcher_foreground}, etc. — the
+   * only names in {@code mipmap} that get merged by name across density qualifiers. */
+  private static boolean isLauncherIconName(@NonNull String nameNoExt) {
+    return nameNoExt.startsWith("ic_launcher");
   }
 
   /** Bare, not-yet-attached {@link TreeNode#TYPE_VIRTUAL} group — callers add children then attach it. */
