@@ -16,6 +16,7 @@ import ir.hanzodev1375.filetreelib.widget.TwoDScrollView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,6 +37,7 @@ public final class DragManager {
   @Nullable private TreeNode draggedNode = null;
   @NonNull private List<TreeNode> draggedNodes = new ArrayList<>();
   @Nullable private TreeNode pendingDropTarget = null;
+  private boolean dragLocked = false;
 
   private static final int AUTO_SCROLL_EDGE_PX = 120;
   private static final int AUTO_SCROLL_STEP_PX = 16;
@@ -94,12 +96,44 @@ public final class DragManager {
   }
 
   /**
+   * When {@code locked}, no node can be picked up at all, regardless of type — a manual "lock
+   * everything" switch a host app can reach for if it ever needs one (e.g. while a bulk operation
+   * is in progress). Not used automatically by {@code FileTreeView}'s "android mod" project view:
+   * that view's virtual groupings (like "Gradle Scripts"/"res") are already unmovable via the
+   * {@code TreeNode#isVirtual()} checks below, but the real files/folders it shows (module
+   * folders, {@code java}, individual resource files, ...) still point at real paths and stay
+   * draggable — moving them is exactly as safe there as anywhere else in the tree.
+   */
+  public void setDragLocked(boolean locked) {
+    this.dragLocked = locked;
+    if (locked) cancel();
+  }
+
+  public boolean isDragLocked() {
+    return dragLocked;
+  }
+
+  /**
    * ItemTouchHelper callback که به RecyclerView وصل میشه. از طریق TreeView.attachDragManager() صدا
    * زده میشه.
    */
   public ItemTouchHelper buildItemTouchHelper(@NonNull TreeAdapter adapter) {
     return new ItemTouchHelper(
-        new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+        new ItemTouchHelper.SimpleCallback(0, 0) {
+
+          @Override
+          public int getMovementFlags(
+              @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+            int position = viewHolder.getAdapterPosition();
+            if (position == RecyclerView.NO_POSITION) return 0;
+            TreeNode node = adapter.getNode(position);
+            // Virtual groupings (e.g. "Gradle Scripts", "res") have no real filesystem entry to
+            // move, so they can never be picked up — regardless of dragLocked. dragLocked itself
+            // is a separate, manual "lock everything" switch a host app can opt into; it's off by
+            // default and not tied to android-mod (real files/folders there stay draggable).
+            if (node == null || node.isVirtual() || dragLocked) return 0;
+            return makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
+          }
 
           @Override
           public boolean onMove(
@@ -186,6 +220,7 @@ public final class DragManager {
   }
 
   public void startDrag(@NonNull TreeNode node) {
+    if (dragLocked || node.isVirtual()) return;
     this.draggedNode = node;
     List<TreeNode> selected = controller.getSelectionManager().getSelectedNodes();
     this.draggedNodes =
@@ -205,13 +240,23 @@ public final class DragManager {
     draggedNode = null;
     draggedNodes = new ArrayList<>();
 
-    TreeNode destination = targetNode.isFolder() ? targetNode : targetNode.getParent();
-    if (destination == null) return;
+    if (dragLocked) return;
 
-    // Skip any dragged node that the destination is invalid for: dropping onto itself, or
-    // into one of its own subfolders, or rejected by the host app's canDrop().
+    // Dropping directly onto a virtual grouping (e.g. "res", "Gradle Scripts") has no real
+    // destination — don't silently redirect to its real parent, since that would move the file
+    // into the wrong place (e.g. the module root instead of "inside" res) without any indication
+    // to the user that it didn't actually land where they dropped it.
+    if (targetNode.isVirtual()) return;
+
+    TreeNode destination = targetNode.isFolder() ? targetNode : targetNode.getParent();
+    if (destination == null || destination.isVirtual()) return;
+
+    // Skip any dragged node that the destination is invalid for: dropping onto itself, into
+    // one of its own subfolders, a virtual node with nothing real to move, or rejected by the
+    // host app's canDrop().
     final List<TreeNode> validDragged = new ArrayList<>();
     for (TreeNode n : dragged) {
+      if (n.isVirtual()) continue;
       if (n.getId().equals(destination.getId())) continue;
       if (destination.isDescendantOf(n)) continue;
       if (dragListener != null && !dragListener.canDrop(n, destination)) continue;
@@ -224,11 +269,13 @@ public final class DragManager {
     executor.submit(
         () -> {
           try {
-            provider.moveNodes(validDragged, finalDestination);
+            Map<TreeNode, String> resolvedPaths = provider.moveNodes(validDragged, finalDestination);
             mainHandler.post(
                 () -> {
                   for (TreeNode n : validDragged) {
-                    controller.applyMovedNode(n, finalDestination);
+                    String resolvedPath = resolvedPaths.get(n);
+                    if (resolvedPath == null) continue; // provider skipped it (no payload)
+                    controller.applyMovedNode(n, finalDestination, resolvedPath);
                     if (dragListener != null)
                       dragListener.onNodeMoved(
                           n, finalDestination, finalDestination.indexOfChild(n));

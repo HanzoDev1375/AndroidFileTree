@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /** A TreeDataProvider backed by the real Android filesystem using java.io.File. */
@@ -134,22 +136,33 @@ public class FileTreeProvider implements TreeDataProvider {
   }
 
   @WorkerThread
+  @NonNull
   @Override
-  public void moveNodes(@NonNull List<TreeNode> nodes, @NonNull TreeNode destination)
-      throws Exception {
+  public Map<TreeNode, String> moveNodes(
+      @NonNull List<TreeNode> nodes, @NonNull TreeNode destination) throws Exception {
     FilePayload dp = destination.getPayload(FilePayload.class);
     if (dp == null) throw new IllegalStateException("No FilePayload on destination");
     assertValidDestination(nodes, destination);
+    Map<TreeNode, String> resolvedPaths = new HashMap<>();
     for (TreeNode node : nodes) {
       FilePayload sp = node.getPayload(FilePayload.class);
       if (sp == null) continue;
       File src = new File(sp.getAbsolutePath());
+      if (!src.exists()) {
+        // The tree's idea of this node's path no longer matches anything real on disk (stale
+        // id from an earlier operation, or the file was removed/renamed outside the app). Fail
+        // loudly instead of letting renameTo()/copyRecursive() silently no-op below, which would
+        // report success while nothing actually moved.
+        throw new Exception("Source no longer exists, can't move: " + src.getPath());
+      }
       File dst = uniqueDestination(new File(dp.getAbsolutePath(), src.getName()));
       if (!src.renameTo(dst)) {
         copyRecursive(src, dst);
         deleteRecursive(src);
       }
+      resolvedPaths.put(node, dst.getAbsolutePath());
     }
+    return resolvedPaths;
   }
 
   // -------------------------------------------------------------------------
