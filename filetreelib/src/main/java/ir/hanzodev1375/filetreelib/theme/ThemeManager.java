@@ -84,6 +84,16 @@ public final class ThemeManager {
     return textColor;
   }
 
+  /**
+   * A dimmer variant of {@link #getTextColor()} for secondary text — e.g. the description shown
+   * after a node's name (see {@link ir.hanzodev1375.filetreelib.model.FilePayload#getDescription()}).
+   * Always derived from the current text color, so it stays in sync if the theme changes.
+   */
+  @ColorInt
+  public int getSecondaryTextColor() {
+    return ColorUtils.setAlphaComponent(textColor, 128);
+  }
+
   @ColorInt
   public int getSelectedBg() {
     return selectedBg;

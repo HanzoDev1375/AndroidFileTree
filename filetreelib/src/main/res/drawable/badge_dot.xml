@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Plain filled circle. Rendered at ~7dp over the bottom-right corner of a node's icon (see
+  item_tree_node.xml's tv_icon_badge) and tinted at runtime via
+  ImageView#setImageTintList(ColorStateList.valueOf(payload.getBadgeColor())) — the "android:color"
+  value below is just a visible placeholder so the shape previews correctly in layout editors.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <solid android:color="#FFFFFF" />
+
+</shape>

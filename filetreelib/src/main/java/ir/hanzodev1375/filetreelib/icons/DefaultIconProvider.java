@@ -24,6 +24,10 @@ public class DefaultIconProvider extends BaseIconProvider {
       return null;
     }
 
+    if (node.isVirtual()) {
+      return ContextCompat.getDrawable(context, resolveVirtualIconRes(node));
+    }
+
     FilePayload payloads = node.getPayload(FilePayload.class);
     String filePath = payloads != null ? payloads.getAbsolutePath() : node.getName();
     if (filePath == null || filePath.isEmpty()) filePath = node.getName();
@@ -44,6 +48,11 @@ public class DefaultIconProvider extends BaseIconProvider {
       return;
     }
 
+    if (node.isVirtual()) {
+      target.setImageResource(resolveVirtualIconRes(node));
+      return;
+    }
+
     FilePayload payload = node.getPayload(FilePayload.class);
 
     String filePath = payload != null ? payload.getAbsolutePath() : node.getName();
@@ -56,6 +65,20 @@ public class DefaultIconProvider extends BaseIconProvider {
     helper.setDynamicFolderEnabled(true);
     helper.setEnvironmentEnabled(true);
     target.setImageResource(helper.getFileIcon());
+  }
+
+  /**
+   * Icon resource for a {@link TreeNode#TYPE_VIRTUAL} node — these are synthetic groups (e.g. a
+   * "Gradle Scripts" node gathering files from several real directories), so unlike real files/
+   * folders they have no filesystem path for {@link FileIconHelper} to resolve an icon from.
+   *
+   * <p>Callers set the icon via {@link TreeNode#setTag(Object)} with a {@code @DrawableRes int}
+   * (see {@code FileTreeView#addVirtualGroup}); falls back to a plain folder icon if no tag was
+   * set.
+   */
+  private int resolveVirtualIconRes(@NonNull TreeNode node) {
+    Object tag = node.getTag();
+    return tag instanceof Integer ? (Integer) tag : R.drawable.ic_filetree_folder;
   }
 
   @Nullable
