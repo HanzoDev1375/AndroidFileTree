@@ -97,9 +97,10 @@ public class MainActivity extends AppCompatActivity {
     // theme.setTextColor(Color.CYAN);
     // theme.setTreeLineColor(Color.parseColor("#fff888"));
     //  theme.setSelectedBg(Color.parseColor("#ff4107"));
+    view.setAndroidMod(true);
     view.setZoomMod(true);
     view.setZoomScale(50, 300);
-    view.setNodePath("/storage/emulated/0/");
+    view.setNodePath("/storage/emulated/0/AndroStudioProjects/My-Application/");
     view.loadTree();
     view.setRainbowIndentGuides(true);
     view.setIconProvider(new FileIconGlide());
