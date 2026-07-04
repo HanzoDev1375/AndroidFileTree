@@ -7,9 +7,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.util.AttributeSet;
 import android.widget.PopupMenu;
 import androidx.annotation.NonNull;
@@ -69,14 +67,8 @@ public class FileTreeView extends LinearLayout {
   private int pendingIconArrowRes = 0;
   private BreadcrumbBar breadcrumbbar;
   private TreeNode rootTreeNode;
-  private View footerActionRow;
-  private View footerActionDivider;
-  private View footerActionClickTarget;
-  private ImageView footerActionIcon;
-  private TextView footerActionText;
   private boolean androidMod = false;
   private TreeNode androidModGroup = null;
-  private View.OnClickListener androidModGitInitListener = null;
   private DragManager dragManager;
   public FileTreeView(Context context) {
     super(context);
@@ -103,11 +95,6 @@ public class FileTreeView extends LinearLayout {
     scrollContainer = v.findViewById(R.id.two_d_scroll_view);
     selectionPanel = v.findViewById(R.id.selectionPanel);
     breadcrumbbar = v.findViewById(R.id.breadcrumb_bar);
-    footerActionRow = v.findViewById(R.id.tree_footer_action);
-    footerActionDivider = v.findViewById(R.id.tree_footer_divider);
-    footerActionClickTarget = v.findViewById(R.id.tree_footer_row);
-    footerActionIcon = v.findViewById(R.id.tree_footer_icon);
-    footerActionText = v.findViewById(R.id.tree_footer_text);
     
     EditText etSearch = v.findViewById(R.id.et_search);
     TextInputLayout nodesearch = v.findViewById(R.id.nodesearch);
@@ -121,8 +108,6 @@ public class FileTreeView extends LinearLayout {
     treeFilter = new TreeFilter();
     searchExecutor = Executors.newSingleThreadScheduledExecutor();
     breadcrumbbar.setTheme(theme);
-    footerActionDivider.setBackgroundColor(theme.getTreeLineColor());
-    footerActionText.setTextColor(theme.getTextColor());
     // NOTE: root path is set from loadTree() once nodePath/rootDir are known — calling it here
     // would pass null (setNodePath() hasn't run yet) and blow up in BreadcrumbBar.splitPath().
     breadcrumbbar.setOnSegmentClickListener(
@@ -576,31 +561,9 @@ public class FileTreeView extends LinearLayout {
     return group;
   }
 
-  /**
-   * Shows a persistent, tappable row pinned below the tree — e.g. Android Studio's "Initialize
-   * Git" prompt. Generic: use it for any call-to-action that isn't tied to a specific node (a
-   * "Sync now", "Connect a remote", etc. row all fit the same shape).
-   *
-   * @param iconRes drawable resource shown on the left of the row
-   * @param text label text
-   * @param onClick called when the row is tapped
-   */
-  public void setFooterAction(int iconRes, @NonNull String text, @NonNull View.OnClickListener onClick) {
-    footerActionIcon.setImageResource(iconRes);
-    footerActionText.setText(text);
-    footerActionClickTarget.setOnClickListener(onClick);
-    footerActionRow.setVisibility(View.VISIBLE);
-  }
-
-  /** Hides the footer action row shown by {@link #setFooterAction}. */
-  public void hideFooterAction() {
-    footerActionRow.setVisibility(View.GONE);
-    footerActionClickTarget.setOnClickListener(null);
-  }
-
   // -------------------------------------------------------------------------
   // Android Studio-style "Android" project view — one-call convenience built on top of
-  // addVirtualGroup() / setFooterAction() / FilePayload's description+badgeColor.
+  // addVirtualGroup() / FilePayload's description+badgeColor.
   // -------------------------------------------------------------------------
 
   /**
@@ -667,15 +630,6 @@ public class FileTreeView extends LinearLayout {
     return androidMod;
   }
 
-  /**
-   * Optional: hook the tap on the "Initialize Git" row that {@link #setAndroidMod} shows
-   * automatically. Not required — the mode looks and works fine without it, the row just won't do
-   * anything when tapped.
-   */
-  public void setOnInitGitClickListener(@Nullable View.OnClickListener listener) {
-    this.androidModGitInitListener = listener;
-  }
-
   private void applyAndroidMod() {
     if (controller == null || rootTreeNode == null) return;
 
@@ -684,7 +638,6 @@ public class FileTreeView extends LinearLayout {
     boolean isGradleProject =
         firstExisting(gradleRoot, "settings.gradle.kts", "settings.gradle") != null;
     if (!isGradleProject) {
-      hideFooterAction();
       return;
     }
 
@@ -693,7 +646,7 @@ public class FileTreeView extends LinearLayout {
     // (lazily-loaded) children to exist first. That whole "wait for the real children to arrive,
     // then apply" dance is gone; buildAndroidModContent() below builds the whole replacement
     // subtree up front and swaps it in.
-    buildAndroidModContent(projectRoot, gradleRoot);
+    buildAndroidModContent(gradleRoot);
   }
 
   /**
@@ -731,14 +684,11 @@ public class FileTreeView extends LinearLayout {
    * buildHierarchicalTreeLocal}. This is not a filtered file browser; it's a project-structure
    * view.
    *
-   * @param projectRoot the actual browsed root (what {@code rootTreeNode} represents) — used for
-   *     the ".git" check, since a Flutter repo's {@code .git} lives here, not inside {@code
-   *     android/}
-   * @param gradleRoot where the Gradle project actually starts — same as {@code projectRoot} for
-   *     a plain Android project, or {@code projectRoot/android} for a Flutter one (see {@link
+   * @param gradleRoot where the Gradle project actually starts — the browsed root itself for a
+   *     plain Android project, or {@code root/android} for a Flutter one (see {@link
    *     #resolveGradleRoot})
    */
-  private void buildAndroidModContent(@NonNull File projectRoot, @NonNull File gradleRoot) {
+  private void buildAndroidModContent(@NonNull File gradleRoot) {
     List<TreeNode> scripts = new ArrayList<>();
     String gradleRootPath = gradleRoot.getAbsolutePath();
     addGradleFileIfExists(scripts, gradleRootPath, "settings.gradle.kts", "settings.gradle", "(Project: Settings)");
@@ -762,17 +712,6 @@ public class FileTreeView extends LinearLayout {
     if (!scripts.isEmpty()) {
       androidModGroup =
           addVirtualGroup("Gradle Scripts", R.drawable.ic_filetree_folder_gradle, scripts);
-    }
-
-    if (new File(projectRoot, ".git").isDirectory()) {
-      hideFooterAction();
-    } else {
-      setFooterAction(
-          R.drawable.ic_filetree_git,
-          "Initialize Git",
-          v -> {
-            if (androidModGitInitListener != null) androidModGitInitListener.onClick(v);
-          });
     }
   }
 
@@ -1032,7 +971,6 @@ public class FileTreeView extends LinearLayout {
       rootTreeNode.setLazyLoadPending(false);
       if (wasExpanded) controller.expandNode(rootTreeNode);
     }
-    hideFooterAction();
   }
 
   private void addGradleFileIfExists(

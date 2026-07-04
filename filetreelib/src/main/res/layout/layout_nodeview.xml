@@ -18,8 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp"
-        app:endIconMode="clear_text">
+        android:layout_marginEnd="4dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_search"
@@ -60,50 +59,5 @@
         android:elevation="8dp"
         android:visibility="gone"
         tools:viewBehavior="LinearLayout_vertical" />
-
-    <!-- Footer Action -->
-    <LinearLayout
-        android:id="@+id/tree_footer_action"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <View
-            android:id="@+id/tree_footer_divider"
-            android:layout_width="match_parent"
-            android:layout_height="1dp" />
-
-        <LinearLayout
-            android:id="@+id/tree_footer_row"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="10dp">
-
-            <ImageView
-                android:id="@+id/tree_footer_icon"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:contentDescription="@null"
-                android:scaleType="centerInside" />
-
-            <TextView
-                android:id="@+id/tree_footer_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:textSize="13sp" />
-
-        </LinearLayout>
-
-    </LinearLayout>
 
 </LinearLayout>
