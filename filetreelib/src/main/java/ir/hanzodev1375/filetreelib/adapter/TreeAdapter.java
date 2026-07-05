@@ -71,6 +71,7 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
   private OnNodeLongClickListener longClickListener;
   @Nullable
   private OnSelectionModeChangeListener selectionModeListener;
+  private boolean selectionModeEnabled = true;
   @NonNull
   private final Map<Integer, TreeViewHolder> viewHolderCache = new HashMap<>();
   private int customIconArrowRes = 0;
@@ -82,12 +83,15 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
   // so RecyclerView always computes each affected sibling's position from an actually
   // correct, current layout — this is what avoids position-drift/overlap.
   //
+  // Applied to every expand regardless of child count, so a folder with 2 children
+  // reveals the same way as a folder with 200 — no separate "small folder" fast path
+  // that pops everything in at once anymore.
+  //
   // NOTE: this is a SEPARATE knob from app:tv_animateDuration / TreeAnimator's
   // expandDuration. expandDuration controls how long *one row's* fade/scale animation
   // takes; staggerStepDelay controls how quickly consecutive rows *start* appearing.
   // Changing one does not change the other.
-  private static final int STAGGER_THRESHOLD = 4;
-  private long staggerStepDelay = 4L;
+  private long staggerStepDelay = 0L;
 
   public void setStaggerStepDelay(long ms) {
     this.staggerStepDelay = Math.max(0L, ms);
@@ -119,13 +123,7 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
 
             int parentPos = currentList.indexOf(parent);
             if (parentPos >= 0 && insertPos == parentPos + 1 && !inserted.isEmpty()) {
-                if (inserted.size() > STAGGER_THRESHOLD) {
-                    staggerInsert(parent, inserted, insertPos, parentPos);
-                } else {
-                    currentList.addAll(insertPos, inserted);
-                    notifyItemRangeInserted(insertPos, inserted.size());
-                    notifyItemChanged(parentPos, Boolean.TRUE);
-                }
+                staggerInsert(parent, inserted, insertPos, parentPos);
             } else {
                 submitNewList(visibleList.snapshot());
                 if (parentPos >= 0) {
@@ -292,6 +290,13 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
                 },
                 v -> {
                     if (!selectionMode) {
+                        // Give the host first refusal: if it handles the long-press itself (its
+                        // own dialog, custom action, etc.) and returns true, don't also enter the
+                        // built-in selection mode on top of it.
+                        if (longClickListener != null && longClickListener.onNodeLongClick(node, v)) {
+                            return true;
+                        }
+                        if (!selectionModeEnabled) return false;
                         enterSelectionMode();
                         controller.getSelectionManager().setVisibleNodes(currentList);
                         controller.selectNode(node, SelectionManager.MODE_MULTI);
@@ -441,8 +446,31 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
         this.clickListener = l;
     }
 
+    /**
+     * Sets a listener consulted on every long-press before the built-in "enter selection mode"
+     * behavior runs. Returning {@code true} means the host fully handled the long-press (its own
+     * dialog, custom action, etc.) — the built-in selection mode is skipped for that press.
+     * Returning {@code false}, or not setting a listener at all, falls through to the built-in
+     * behavior (or does nothing, if {@link #setSelectionModeEnabled} is {@code false}).
+     */
     public void setOnNodeLongClickListener(@Nullable OnNodeLongClickListener l) {
         this.longClickListener = l;
+    }
+
+    /**
+     * Enables or disables the built-in "long-press enters selection mode, shows the selection
+     * action panel" behavior. Default {@code true}. Set to {@code false} if the host wants to
+     * handle long-press/selection/drag entirely itself — e.g. via {@link
+     * #setOnNodeLongClickListener} and its own UI — instead of the library's built-in flow.
+     * Doesn't prevent a host from calling {@link #enterSelectionMode()} directly; it only turns
+     * off the automatic long-press trigger.
+     */
+    public void setSelectionModeEnabled(boolean enabled) {
+        this.selectionModeEnabled = enabled;
+    }
+
+    public boolean isSelectionModeEnabled() {
+        return selectionModeEnabled;
     }
 
     public void setOnSelectionModeChangeListener(@Nullable OnSelectionModeChangeListener l) {
