@@ -25,8 +25,6 @@ public class MainActivity extends AppCompatActivity {
   private static final String TAG = "FileTreeDemo";
 
   private static final String NORMAL_VIEW_ROOT = "/storage/emulated/0/";
-  private static final String ANDROID_VIEW_ROOT =
-      "/storage/emulated/0/AndroStudioProjects/My-Application/";
 
   private ActivityMainBinding binding;
   private FileTreeView drawerFileTreeView;
@@ -51,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         });
     binding.btnAndroidView.setOnClickListener(
         v -> {
-          drawerFileTreeView.setNodePath(ANDROID_VIEW_ROOT);
+          drawerFileTreeView.setNodePath(binding.androidmod.getText().toString());
           drawerFileTreeView.loadTree();
           drawerFileTreeView.setAndroidMod(true);
           binding.drawerLayout.openDrawer(GravityCompat.START);

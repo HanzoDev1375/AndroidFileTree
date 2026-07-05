@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.DrawerLayoutDesign
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_height="match_parent"
+	android:layout_width="match_parent"
+	android:id="@+id/drawerLayout"
+	tools:context=".MainActivity">
+
+	<org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign
+		android:layout_height="match_parent"
+		android:layout_width="match_parent"
+		android:gravity="center"
+		android:orientation="vertical"
+		android:padding="16dp">
+
+		<org.appdevforall.codeonthego.layouteditor.editor.palette.buttons.ButtonDesign
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:textSize="16sp"
+			android:id="@+id/btnNormalView"
+			android:text="Normal File Tree View" />
+
+		<org.appdevforall.codeonthego.layouteditor.editor.palette.buttons.ButtonDesign
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:textSize="16sp"
+			android:id="@+id/btnAndroidView"
+			android:text="Android View (Project Structure)" />
+
+		<org.appdevforall.codeonthego.layouteditor.editor.palette.buttons.ButtonDesign
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:textSize="16sp"
+			android:id="@+id/launchSampleExplorer"
+			android:text="Basic Explorer Activity" />
+
+	</org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign>
+
+	<org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.FrameLayoutDesign
+		android:layout_height="match_parent"
+		android:layout_width="300dp"
+		android:id="@+id/drawer"
+		android:layout_gravity="start"
+		android:background="?android:colorBackground"
+		android:elevation="8dp">
+
+		<org.appdevforall.codeonthego.layouteditor.editor.palette.text.EditTextDesign
+			android:id="@+id/edittext"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:hint="Plain Text"
+			android:inputType="text"
+			android:layout_gravity="top|start"
+			android:layout_marginLeft="76.02339dp"
+			android:layout_marginTop="84.03508dp" />
+
+	</org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.FrameLayoutDesign>
+
+</org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.DrawerLayoutDesign>
