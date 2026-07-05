@@ -5,6 +5,8 @@ import android.graphics.PorterDuff;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -274,5 +276,45 @@ public final class SelectionActionPanel extends LinearLayout {
           List<TreeNode> nodes = controller.getSelectedNodes();
           if (actionListener != null) actionListener.onMore(nodes, v);
         });
+  }
+
+  @Override
+  protected void onVisibilityChanged(View changedView, int visibility) {
+    super.onVisibilityChanged(changedView, visibility);
+
+    if (changedView != this) {
+      return;
+    }
+
+    animate().cancel();
+
+    if (visibility == VISIBLE) {
+      setAlpha(0f);
+      setScaleX(0.92f);
+      setScaleY(0.92f);
+      setTranslationY(dp(16));
+
+      animate()
+          .alpha(1f)
+          .scaleX(1f)
+          .scaleY(1f)
+          .translationY(0f)
+          .setDuration(320)
+          .setInterpolator(new OvershootInterpolator(0.8f))
+          .start();
+    } else {
+      animate()
+          .alpha(0f)
+          .scaleX(0.95f)
+          .scaleY(0.95f)
+          .translationY(dp(12))
+          .setDuration(180)
+          .setInterpolator(new AccelerateInterpolator())
+          .start();
+    }
+  }
+
+  private float dp(float value) {
+    return value * getResources().getDisplayMetrics().density;
   }
 }

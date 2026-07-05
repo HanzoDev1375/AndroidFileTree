@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
     view.setAndroidMod(true);
     view.setZoomMod(true);
     view.setZoomScale(50, 300);
-    view.setNodePath("/storage/emulated/0/AndroStudioProjects/My-Application/");
+    view.setNodePath("/storage/emulated/0/AndroidIDEProjects/Ghostide33");
     view.loadTree();
     view.setRainbowIndentGuides(true);
     view.setIconProvider(new FileIconGlide());
