@@ -12,30 +12,50 @@
          android:layout_height="match_parent"
          android:layout_width="match_parent"
          android:gravity="center"
-         android:orientation="vertical">
+         android:orientation="vertical"
+         android:padding="16dp">
 
         <Button
              android:layout_height="wrap_content"
              android:layout_width="wrap_content"
-             android:textSize="24sp"
-             android:id="@+id/textView"
-             android:text="Show BottomSheet" />
+             android:layout_marginBottom="8dp"
+             android:textSize="16sp"
+             android:id="@+id/btnNormalView"
+             android:text="Normal File Tree View" />
 
         <Button
              android:layout_height="wrap_content"
              android:layout_width="wrap_content"
-             android:textSize="24sp"
-             android:id="@+id/sidesheet"
-             android:text="Side BottomSheet" />
+             android:layout_marginBottom="8dp"
+             android:textSize="16sp"
+             android:id="@+id/btnAndroidView"
+             android:text="Android View (Project Structure)" />
+<!--
+        <Button
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             android:layout_marginBottom="8dp"
+             android:textSize="16sp"
+             android:id="@+id/btnPopupWindow"
+             android:text="Popup Window (Virtual Grouping Demo)" />
+-->
+        <Button
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             android:textSize="16sp"
+             android:id="@+id/launchSampleExplorer"
+             android:text="Basic Explorer Activity" />
 
     </LinearLayout>
 
+    <!-- Left navigation drawer — one FileTreeView instance, reused for both the Normal View and
+         Android View buttons (they just toggle setAndroidMod() on it and open the drawer). -->
     <FrameLayout
          android:layout_height="match_parent"
-         android:layout_width="320dp"
+         android:layout_width="300dp"
          android:id="@+id/drawer"
-         android:layout_gravity="end">
-
-    </FrameLayout>
+         android:layout_gravity="start"
+         android:background="?android:colorBackground"
+         android:elevation="8dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
