@@ -112,12 +112,40 @@ public final class FeatureControlSheet {
         view.isZoomMod(),
         (btn, checked) -> view.setZoomMod(checked));
 
-    addSwitchRow(
-        activity,
-        root,
-        "Rainbow indent guides",
-        view.isRainbowIndentGuides(),
-        (btn, checked) -> view.setRainbowIndentGuides(checked));
+    SwitchCompat treeLinesSwitch =
+        addSwitchRow(
+            activity,
+            root,
+            "Show tree lines",
+            view.isShowTreeLines(),
+            (btn, checked) -> view.setShowTreeLines(checked));
+
+    SwitchCompat rainbowSwitch =
+        addSwitchRow(
+            activity,
+            root,
+            "Rainbow indent guides (needs tree lines)",
+            view.isRainbowIndentGuides(),
+            (btn, checked) -> view.setRainbowIndentGuides(checked));
+
+    // FileTreeView enforces the dependency internally (rainbow needs lines on; turning lines off
+    // turns rainbow off) — these listeners just keep the two switches visually in sync with that,
+    // since setChecked() below re-triggers onCheckedChanged, each guarded by checking against the
+    // already-applied model state to avoid a feedback loop.
+    treeLinesSwitch.setOnCheckedChangeListener(
+        (btn, checked) -> {
+          view.setShowTreeLines(checked);
+          if (rainbowSwitch.isChecked() != view.isRainbowIndentGuides()) {
+            rainbowSwitch.setChecked(view.isRainbowIndentGuides());
+          }
+        });
+    rainbowSwitch.setOnCheckedChangeListener(
+        (btn, checked) -> {
+          view.setRainbowIndentGuides(checked);
+          if (treeLinesSwitch.isChecked() != view.isShowTreeLines()) {
+            treeLinesSwitch.setChecked(view.isShowTreeLines());
+          }
+        });
 
     addSwitchRow(
         activity,
@@ -488,6 +516,8 @@ public final class FeatureControlSheet {
                   + view.getCurrentZoomScale()
                   + "\nrainbowIndentGuides="
                   + view.isRainbowIndentGuides()
+                  + "\nshowTreeLines="
+                  + view.isShowTreeLines()
                   + "\nshowSearchBar="
                   + view.getShowSearchBar()
                   + "\nshowBreadcrumbBar="
@@ -525,7 +555,7 @@ public final class FeatureControlSheet {
     void onChanged(CompoundButton button, boolean checked);
   }
 
-  private static void addSwitchRow(
+  private static SwitchCompat addSwitchRow(
       Context context,
       LinearLayout root,
       String label,
@@ -548,6 +578,7 @@ public final class FeatureControlSheet {
     row.addView(switchCompat);
 
     root.addView(row);
+    return switchCompat;
   }
 
   private static void addButtonRow(

@@ -875,9 +875,29 @@ public class FileTreeView extends LinearLayout {
   }
 
   /**
+   * Shows or hides the tree/indent guide lines. <b>On by default.</b> Turning this off also turns
+   * off {@link #setRainbowIndentGuides}, since rainbow guides are just colored tree lines — with
+   * lines hidden there'd be nothing left to colorize.
+   *
+   * @param show true to draw indent guide lines, false to hide them
+   */
+  public void setShowTreeLines(boolean show) {
+    if (treeView != null) treeView.setShowTreeLines(show);
+  }
+
+  /**
+   * @return whether tree/indent guide lines are currently shown.
+   */
+  public boolean isShowTreeLines() {
+    return treeView != null && treeView.isShowTreeLines();
+  }
+
+  /**
    * Enables or disables rainbow-colored indent guide lines, similar to bracket-pair colorization in
    * VS Code — each indentation level is drawn in a different color from a cycling palette instead
-   * of one flat line color. <b>Off by default.</b>
+   * of one flat line color. <b>Off by default.</b> Since rainbow colors only render on the tree
+   * lines themselves, enabling this while lines are hidden ({@link #setShowTreeLines}{@code
+   * (false)}) turns them back on to match.
    *
    * @param enabled true to color indent guides by depth, false for a single flat color
    */
