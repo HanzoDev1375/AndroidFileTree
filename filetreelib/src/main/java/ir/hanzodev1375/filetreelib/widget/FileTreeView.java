@@ -53,7 +53,6 @@ public class FileTreeView extends LinearLayout {
   private ThemeManager theme;
   private ClipboardManager clipboard;
   private FileWatcher fileWatcher;
-  private boolean showSearchBar = false;
   private TreeSearchEngine searchEngine;
   private TreeFilter treeFilter;
   private ExecutorService searchExecutor;
@@ -66,6 +65,9 @@ public class FileTreeView extends LinearLayout {
   private boolean pendingDragEnabled = true;
   private TreeAdapter.OnNodeLongClickListener pendingLongClickListener = null;
   private BreadcrumbBar breadcrumbbar;
+  private boolean showBreadcrumbBar = false;
+  private TextInputLayout nodesearch;
+  private boolean showSearchBar = false;
   private TreeNode rootTreeNode;
   private boolean androidMod = false;
   private TreeNode androidModGroup = null;
@@ -100,10 +102,9 @@ public class FileTreeView extends LinearLayout {
     breadcrumbbar = v.findViewById(R.id.breadcrumb_bar);
     
     EditText etSearch = v.findViewById(R.id.et_search);
-    TextInputLayout nodesearch = v.findViewById(R.id.nodesearch);
-    if (!showSearchBar) {
-      nodesearch.setVisibility(View.GONE);
-    } else nodesearch.setVisibility(View.VISIBLE);
+    nodesearch = v.findViewById(R.id.nodesearch);
+    nodesearch.setVisibility(showSearchBar ? View.VISIBLE : View.GONE);
+    breadcrumbbar.setVisibility(showBreadcrumbBar ? View.VISIBLE : View.GONE);
     theme = new ThemeManager(getContext());
     clipboard = new ClipboardManager();
     fileWatcher = new FileWatcher();
@@ -1038,12 +1039,24 @@ public class FileTreeView extends LinearLayout {
             controller.revealNode(current);
             return;
           }
-          expandToPathSegment(match, segments, index + 1);
+          TreeNode finalMatch = match;
+          // Defer instead of recursing into expandToPathSegment() synchronously here. When this
+          // Runnable is invoked from onNodesExpanded() below, we're still nested inside
+          // ExpandManager's listener-notification loop for `current` — continuing straight into
+          // the next segment's expandNode() would start another nested expand()+notify cycle
+          // before TreeAdapter has processed this level yet, and so on down the whole path. For a
+          // deep chain of folders (e.g. a Java package path) this stacks up many synchronous
+          // nested notify cycles, corrupting TreeAdapter's currentList/visibleList sync (mixing
+          // its sync fast-path and async diff-path updates) and eventually crashing RecyclerView.
+          // Posting breaks the reentrancy: each level's notification fully finishes first, then
+          // the next segment runs as its own independent, top-level call.
+          post(() -> expandToPathSegment(finalMatch, segments, index + 1));
         };
 
     if (current.getChildCount() > 0 || !current.hasChildren()) {
       // Already loaded (real folder previously expanded, or android-mod's synthetic children),
-      // or known to have nothing in it — no disk load needed, continue immediately.
+      // or known to have nothing in it — no disk load needed, continue immediately. Not called
+      // from inside a notify loop here, so no reentrancy risk.
       proceed.run();
     } else {
       // Real folder, not yet lazily loaded — expand it and continue once its children arrive.
@@ -1071,7 +1084,35 @@ public class FileTreeView extends LinearLayout {
     return this.showSearchBar;
   }
 
+  /**
+   * Shows or hides the search bar above the tree. Unlike the constructor-time-only behavior this
+   * used to have, this now takes effect immediately even after the view is already showing — the
+   * previous version only ever read {@code showSearchBar} once, during {@link #init()}, so
+   * calling this later silently did nothing to the actual view.
+   */
   public void setShowSearchBar(boolean showSearchBar) {
     this.showSearchBar = showSearchBar;
+    if (nodesearch != null) {
+      nodesearch.setVisibility(showSearchBar ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  /**
+   * Whether the breadcrumb bar (the row above the tree that shows the current path and lets you
+   * tap a segment to jump/re-root there) is currently shown. Default {@code true}.
+   */
+  public boolean getShowBreadcrumbBar() {
+    return this.showBreadcrumbBar;
+  }
+
+  /**
+   * Shows or hides the breadcrumb bar above the tree. Takes effect immediately, the same way
+   * {@link #setShowSearchBar} does — safe to call any time, before or after {@link #loadTree()}.
+   */
+  public void setShowBreadcrumbBar(boolean showBreadcrumbBar) {
+    this.showBreadcrumbBar = showBreadcrumbBar;
+    if (breadcrumbbar != null) {
+      breadcrumbbar.setVisibility(showBreadcrumbBar ? View.VISIBLE : View.GONE);
+    }
   }
 }
