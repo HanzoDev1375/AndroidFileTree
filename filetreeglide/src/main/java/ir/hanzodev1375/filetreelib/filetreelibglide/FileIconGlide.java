@@ -6,10 +6,16 @@ import android.graphics.drawable.PictureDrawable;
 import android.view.View;
 import android.widget.ImageView;
 
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import com.bumptech.glide.Glide;
 
+import com.bumptech.glide.request.Request;
+import com.bumptech.glide.request.target.SizeReadyCallback;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+import ir.hanzodev1375.filetreelib.filetreelibglide.glide.xml.VectorModel;
 import ir.hanzodev1375.filetreelib.icons.BaseIconProvider;
 import ir.hanzodev1375.filetreelib.icons.DefaultIconProvider;
 import ir.hanzodev1375.filetreelib.core.TreeNode;
@@ -41,13 +47,32 @@ public class FileIconGlide extends BaseIconProvider {
 
     if (isVectorXmlFile(node) && path != null) {
 
-      Glide.with(context).load(new File(path)).error(R.drawable.ic_filetree_xml).into(target);
-      //        Drawable vd = DrawableXmlLoader.load(context, new File(path));
-      //        if (vd != null) {
-      //            target.setBackground(new AlphaPatternDrawable());
-      //            target.setImageDrawable(vd);
-      //            return;
-      //        }
+      Drawable vd = DrawableXmlLoader.load(context, new File(path));
+      if (vd != null) {
+        Glide.with(context)
+            .asDrawable()
+            .placeholder(R.drawable.ic_filetree_xml)
+            .load(vd)
+            .into(
+                new CustomTarget<Drawable>() {
+
+                  @Override
+                  public void onLoadStarted(Drawable arg0) {}
+
+                  @Override
+                  public void onLoadFailed(Drawable arg0) {}
+
+                  @Override
+                  public void onResourceReady(Drawable vda, Transition<? super Drawable> arg1) {
+                    target.setImageDrawable(vda);
+                    target.setBackground(new AlphaPatternDrawable());
+                  }
+
+                  @Override
+                  public void onLoadCleared(Drawable arg0) {}
+                });
+        return;
+      }
     }
 
     if (isApkFile(node) && path != null) {
