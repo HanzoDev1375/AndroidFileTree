@@ -17,6 +17,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import ir.hanzodev1375.filetreelib.R;
 import ir.hanzodev1375.filetreelib.core.TreeController;
 import ir.hanzodev1375.filetreelib.adapter.TreeAdapter;
+import ir.hanzodev1375.filetreelib.datas.FileTypeText;
 import ir.hanzodev1375.filetreelib.icons.IconProvider;
 import ir.hanzodev1375.filetreelib.model.FilePayload;
 import ir.hanzodev1375.filetreelib.core.TreeModel;
@@ -75,6 +76,8 @@ public class FileTreeView extends LinearLayout {
   private boolean autoExpandSingleChildChains = false;
   private ExecutorService androidModExecutor;
   private int androidModApplyToken = 0;
+  private FileTypeText fileTypeText;
+
   public FileTreeView(Context context) {
     super(context);
     init();
@@ -96,11 +99,12 @@ public class FileTreeView extends LinearLayout {
     if (v != null) {
       addView(v);
     }
+    fileTypeText = new FileTypeText();
     treeView = v.findViewById(R.id.tree_view);
     scrollContainer = v.findViewById(R.id.two_d_scroll_view);
     selectionPanel = v.findViewById(R.id.selectionPanel);
     breadcrumbbar = v.findViewById(R.id.breadcrumb_bar);
-    
+
     EditText etSearch = v.findViewById(R.id.et_search);
     nodesearch = v.findViewById(R.id.nodesearch);
     nodesearch.setVisibility(showSearchBar ? View.VISIBLE : View.GONE);
@@ -177,6 +181,14 @@ public class FileTreeView extends LinearLayout {
 
   public void setNodePath(String nodePath) {
     this.nodePath = nodePath;
+  }
+
+  public boolean getAllTypeText(String path) {
+    return fileTypeText.getAllTypeText(path);
+  }
+
+  public boolean getAndroidType(String path) {
+    return fileTypeText.getAndroidType(path);
   }
 
   private void performSearch(@NonNull String query) {
@@ -549,9 +561,9 @@ public class FileTreeView extends LinearLayout {
 
   /**
    * Can be called before {@link #loadTree()} (e.g. right after constructing the view) — the
-   * provider is remembered and applied once {@code loadTree()} creates the adapter, same as
-   * {@link #setIconArrow}. Calling this before {@code loadTree()} used to throw a
-   * NullPointerException since the adapter didn't exist yet.
+   * provider is remembered and applied once {@code loadTree()} creates the adapter, same as {@link
+   * #setIconArrow}. Calling this before {@code loadTree()} used to throw a NullPointerException
+   * since the adapter didn't exist yet.
    */
   public void setIconProvider(IconProvider ic) {
     this.pendingIconProvider = ic;
@@ -637,9 +649,9 @@ public class FileTreeView extends LinearLayout {
   // -------------------------------------------------------------------------
 
   /**
-   * Single toggle that makes the tree look and behave like Android Studio's "Android" project
-   * view: root-level Gradle files (plus each module's own build.gradle) get gathered under a
-   * "Gradle Scripts" group, and module folders get a colored dot.
+   * Single toggle that makes the tree look and behave like Android Studio's "Android" project view:
+   * root-level Gradle files (plus each module's own build.gradle) get gathered under a "Gradle
+   * Scripts" group, and module folders get a colored dot.
    *
    * <p>Only kicks in when the current root actually looks like a Gradle project (contains {@code
    * settings.gradle}/{@code .kts}); otherwise it's a harmless no-op. Re-applies automatically every
@@ -685,7 +697,8 @@ public class FileTreeView extends LinearLayout {
     androidModExecutor.execute(
         () -> {
           boolean isGradleProject =
-              AndroidModTreeBuilder.firstExisting(gradleRoot, "settings.gradle.kts", "settings.gradle")
+              AndroidModTreeBuilder.firstExisting(
+                      gradleRoot, "settings.gradle.kts", "settings.gradle")
                   != null;
           if (!isGradleProject) {
             post(() -> clearAndroidModLoadingSpinner(myToken));
@@ -694,14 +707,24 @@ public class FileTreeView extends LinearLayout {
 
           List<TreeNode> scripts = new ArrayList<>();
           String gradleRootPath = gradleRoot.getAbsolutePath();
-          AndroidModTreeBuilder.addGradleFileIfExists(scripts, gradleRootPath, "settings.gradle.kts", "settings.gradle", "(Project: Settings)");
-          AndroidModTreeBuilder.addGradleFileIfExists(scripts, gradleRootPath, "build.gradle.kts", "build.gradle", "(Project: Build)");
-          AndroidModTreeBuilder.addGradleFileIfExists(scripts, gradleRootPath, "gradle.properties", null, "(Project: Properties)");
-          AndroidModTreeBuilder.addGradleFileIfExists(scripts, gradleRootPath, "proguard-rules.pro", null, "(Project: proguard-rules)");
-          AndroidModTreeBuilder.addGradleFileIfExists(scripts, gradleRootPath, "local.properties", null, "(SDK Location)");
+          AndroidModTreeBuilder.addGradleFileIfExists(
+              scripts,
+              gradleRootPath,
+              "settings.gradle.kts",
+              "settings.gradle",
+              "(Project: Settings)");
+          AndroidModTreeBuilder.addGradleFileIfExists(
+              scripts, gradleRootPath, "build.gradle.kts", "build.gradle", "(Project: Build)");
+          AndroidModTreeBuilder.addGradleFileIfExists(
+              scripts, gradleRootPath, "gradle.properties", null, "(Project: Properties)");
+          AndroidModTreeBuilder.addGradleFileIfExists(
+              scripts, gradleRootPath, "proguard-rules.pro", null, "(Project: proguard-rules)");
+          AndroidModTreeBuilder.addGradleFileIfExists(
+              scripts, gradleRootPath, "local.properties", null, "(SDK Location)");
 
           List<TreeNode> modules = new ArrayList<>();
-          AndroidModTreeBuilder.discoverAndroidModTree(gradleRoot, modules, scripts, new HashMap<>());
+          AndroidModTreeBuilder.discoverAndroidModTree(
+              gradleRoot, modules, scripts, new HashMap<>());
 
           post(() -> applyAndroidModResult(myToken, modules, scripts));
         });
@@ -709,8 +732,8 @@ public class FileTreeView extends LinearLayout {
 
   /**
    * Clears the loading spinner {@link #applyAndroidMod} turned on, for the path where the folder
-   * turned out not to be a Gradle project after all (so {@link #applyAndroidModResult} never
-   * runs). Guarded by {@code token} the same way {@link #applyAndroidModResult} is.
+   * turned out not to be a Gradle project after all (so {@link #applyAndroidModResult} never runs).
+   * Guarded by {@code token} the same way {@link #applyAndroidModResult} is.
    */
   private void clearAndroidModLoadingSpinner(int token) {
     if (token != androidModApplyToken || controller == null || rootTreeNode == null) return;
@@ -741,7 +764,8 @@ public class FileTreeView extends LinearLayout {
     // group — was exactly what produced RecyclerView's "Inconsistency detected: invalid view
     // holder adapter position" crash on projects with enough modules for the position math
     // between the two steps to disagree. One mutation avoids that entirely.
-    TreeNode scriptsGroup = AndroidModTreeBuilder.buildGradleScriptsGroup(rootTreeNode.getId(), scripts);
+    TreeNode scriptsGroup =
+        AndroidModTreeBuilder.buildGradleScriptsGroup(rootTreeNode.getId(), scripts);
     if (scriptsGroup != null) {
       scriptsGroup.setTag(R.drawable.ic_filetree_folder_gradle);
       modules.add(0, scriptsGroup); // Android Studio shows "Gradle Scripts" above the modules
@@ -801,10 +825,10 @@ public class FileTreeView extends LinearLayout {
   }
 
   /**
-   * Returns the {@link TreeController} driving this view (built fresh by every {@link
-   * #loadTree()} call), or {@code null} before the first {@link #loadTree()}. Needed for direct
-   * model access — e.g. {@code getController().getModel().findNodeById(path)} to look up a node
-   * and tweak its {@link FilePayload} (badge color, description) after the tree is already loaded.
+   * Returns the {@link TreeController} driving this view (built fresh by every {@link #loadTree()}
+   * call), or {@code null} before the first {@link #loadTree()}. Needed for direct model access —
+   * e.g. {@code getController().getModel().findNodeById(path)} to look up a node and tweak its
+   * {@link FilePayload} (badge color, description) after the tree is already loaded.
    */
   @Nullable
   public TreeController getController() {
@@ -938,10 +962,10 @@ public class FileTreeView extends LinearLayout {
   }
 
   /**
-   * Enables or disables the built-in "long-press enters selection mode, shows the selection
-   * action panel" behavior. Default {@code true}. Set to {@code false} to handle
-   * selection/multi-select entirely yourself — combine with {@link #setOnNodeLongClickListener}
-   * to show your own dialog/UI on long-press instead.
+   * Enables or disables the built-in "long-press enters selection mode, shows the selection action
+   * panel" behavior. Default {@code true}. Set to {@code false} to handle selection/multi-select
+   * entirely yourself — combine with {@link #setOnNodeLongClickListener} to show your own dialog/UI
+   * on long-press instead.
    */
   public void setSelectionModeEnabled(boolean enabled) {
     this.pendingSelectionModeEnabled = enabled;
@@ -987,10 +1011,10 @@ public class FileTreeView extends LinearLayout {
   /**
    * When {@code enabled}, expanding a folder that turns out to contain exactly one item
    * auto-expands that item too, and so on down the chain — stopping the moment a folder has 2+
-   * items, or the chain ends at a file. The same "Android Studio compact middle packages" feel,
-   * for any folder shape, not just Java/Kotlin packages. Default {@code false}. Applies equally
-   * whether {@link #setAndroidMod} is on or off — both real lazy-loaded folders and android-mod's
-   * synthetic tree go through the same expand path this hooks into.
+   * items, or the chain ends at a file. The same "Android Studio compact middle packages" feel, for
+   * any folder shape, not just Java/Kotlin packages. Default {@code false}. Applies equally whether
+   * {@link #setAndroidMod} is on or off — both real lazy-loaded folders and android-mod's synthetic
+   * tree go through the same expand path this hooks into.
    */
   public void setAutoExpandSingleChildChains(boolean enabled) {
     this.autoExpandSingleChildChains = enabled;
@@ -1002,19 +1026,19 @@ public class FileTreeView extends LinearLayout {
 
   /**
    * Expands every ancestor folder of {@code targetPath} (loading each one from disk first if
-   * needed) and reveals/scrolls to it once found — e.g. jumping straight to a file deep in the
-   * tree without the user manually tapping through each folder in between.
+   * needed) and reveals/scrolls to it once found — e.g. jumping straight to a file deep in the tree
+   * without the user manually tapping through each folder in between.
    *
    * @param targetPath absolute path of the file/folder to reveal
    * @return {@code false} immediately, without touching the tree, if {@code targetPath} doesn't
-   *     exist on disk or isn't under the tree's current root ({@link #getNodePath()}); {@code
-   *     true} otherwise, meaning an expansion attempt was made. A {@code true} return doesn't
-   *     guarantee the target ends up fully revealed though — if a folder along the way turns out
-   *     not to actually contain the next segment (e.g. it changed on disk after the initial
-   *     existence check), this still expands as far as it successfully got and stops there rather
-   *     than throwing.
-   *     <p>Works the same in android-mod's flattened project view: a module's children were
-   *     already built synthetically, so no disk load is needed for those — this just walks the
+   *     exist on disk or isn't under the tree's current root ({@link #getNodePath()}); {@code true}
+   *     otherwise, meaning an expansion attempt was made. A {@code true} return doesn't guarantee
+   *     the target ends up fully revealed though — if a folder along the way turns out not to
+   *     actually contain the next segment (e.g. it changed on disk after the initial existence
+   *     check), this still expands as far as it successfully got and stops there rather than
+   *     throwing.
+   *     <p>Works the same in android-mod's flattened project view: a module's children were already
+   *     built synthetically, so no disk load is needed for those — this just walks the
    *     already-present children instead of lazy-loading them.
    */
   public boolean expandToPath(@NonNull String targetPath) {
@@ -1107,8 +1131,8 @@ public class FileTreeView extends LinearLayout {
   /**
    * Shows or hides the search bar above the tree. Unlike the constructor-time-only behavior this
    * used to have, this now takes effect immediately even after the view is already showing — the
-   * previous version only ever read {@code showSearchBar} once, during {@link #init()}, so
-   * calling this later silently did nothing to the actual view.
+   * previous version only ever read {@code showSearchBar} once, during {@link #init()}, so calling
+   * this later silently did nothing to the actual view.
    */
   public void setShowSearchBar(boolean showSearchBar) {
     this.showSearchBar = showSearchBar;
@@ -1118,21 +1142,29 @@ public class FileTreeView extends LinearLayout {
   }
 
   /**
-   * Whether the breadcrumb bar (the row above the tree that shows the current path and lets you
-   * tap a segment to jump/re-root there) is currently shown. Default {@code true}.
+   * Whether the breadcrumb bar (the row above the tree that shows the current path and lets you tap
+   * a segment to jump/re-root there) is currently shown. Default {@code true}.
    */
   public boolean getShowBreadcrumbBar() {
     return this.showBreadcrumbBar;
   }
 
   /**
-   * Shows or hides the breadcrumb bar above the tree. Takes effect immediately, the same way
-   * {@link #setShowSearchBar} does — safe to call any time, before or after {@link #loadTree()}.
+   * Shows or hides the breadcrumb bar above the tree. Takes effect immediately, the same way {@link
+   * #setShowSearchBar} does — safe to call any time, before or after {@link #loadTree()}.
    */
   public void setShowBreadcrumbBar(boolean showBreadcrumbBar) {
     this.showBreadcrumbBar = showBreadcrumbBar;
     if (breadcrumbbar != null) {
       breadcrumbbar.setVisibility(showBreadcrumbBar ? View.VISIBLE : View.GONE);
     }
+  }
+
+  public FileTypeText getFileTypeText() {
+    return this.fileTypeText;
+  }
+
+  public void setFileTypeText(FileTypeText fileTypeText) {
+    this.fileTypeText = fileTypeText;
   }
 }
