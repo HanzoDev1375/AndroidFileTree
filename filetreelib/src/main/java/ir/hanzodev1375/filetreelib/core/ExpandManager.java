@@ -315,6 +315,16 @@ public final class ExpandManager {
      * Called by the data provider after a lazy load completes.  Clears the loading
      * state (flips the row's spinner back to its arrow) and inserts the real children.
      *
+     * <p>Between the load being triggered and this callback arriving, the node — or one of its
+     * ancestors — may have been collapsed (a user tap, another {@code expandToPath} call, etc.).
+     * If so, {@code parent.isExpanded()} is now {@code false} or {@code parent} is no longer in
+     * {@link #visibleList}; in either case we still attach the children to the model (so a future
+     * re-expand won't need to reload) but skip touching the visible list / adapter, since forcing
+     * rows into the RecyclerView for a node the model now says is collapsed would desync
+     * {@code TreeAdapter}'s mirror list from {@link #visibleList} — the underlying cause of a class
+     * of "Inconsistency detected" crashes that only ever showed up for folders (the only nodes
+     * that lazy-load; files never go through this path at all).
+     *
      * @param parent      the node whose children have now been loaded
      * @param newChildren the freshly loaded children (already attached to {@code parent})
      */
@@ -325,6 +335,13 @@ public final class ExpandManager {
         lazyLoadingIds.remove(parent.getId());
         parent.setLazyLoadPending(false);
 
+        if (!parent.isExpanded()) {
+            // Collapsed while loading — children are now attached to the model for next time,
+            // but there is nothing visible to insert right now.
+            notifyLazyLoadStateChanged(parent);
+            return;
+        }
+
         if (newChildren.isEmpty()) {
             // No children: mark as leaf so the arrow disappears.
             parent.setHasChildren(false);
@@ -333,10 +350,19 @@ public final class ExpandManager {
             return;
         }
 
+        int parentPos = visibleList.indexOf(parent);
+        if (parentPos < 0) {
+            // parent isn't currently visible (an ancestor got collapsed meanwhile) — matches
+            // expand()'s own "not in visibleList" guard above. Nothing to insert now; the correct
+            // children will show up via collectExpandedSubtree() whenever parent's own ancestor
+            // gets expanded again.
+            notifyLazyLoadStateChanged(parent);
+            return;
+        }
+
         // Insert visible subtree of the newly loaded children.
         List<TreeNode> toInsert = collectExpandedSubtree(parent);
-        int parentPos = visibleList.indexOf(parent);
-        int insertPos = (parentPos >= 0) ? parentPos + 1 : visibleList.size();
+        int insertPos = parentPos + 1;
 
         visibleList.insertAll(insertPos, toInsert);
         notifyLazyLoadStateChanged(parent);
@@ -356,9 +382,11 @@ public final class ExpandManager {
 
         notifyLazyLoadStateChanged(parent);
 
-        parent.setExpanded(false);
-        // Notify collapsed with empty list — adapter will animate the arrow.
-        notifyCollapsed(parent, Collections.emptyList(), -1);
+        if (parent.isExpanded()) {
+            parent.setExpanded(false);
+            // Notify collapsed with empty list — adapter will animate the arrow.
+            notifyCollapsed(parent, Collections.emptyList(), -1);
+        }
     }
 
     // -------------------------------------------------------------------------
