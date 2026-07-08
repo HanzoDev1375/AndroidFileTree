@@ -78,21 +78,31 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
   private boolean selectionMode = false;
   private int diffRequestId = 0;
 
-  // Staggered reveal: children are inserted one real row at a time via a genuine
-  // notifyItemRangeInserted(pos, 1) per step (not a synthetic animation-only delay),
-  // so RecyclerView always computes each affected sibling's position from an actually
-  // correct, current layout — this is what avoids position-drift/overlap.
+  // Previously, children were inserted one real row at a time across multiple posted Handler
+  // callbacks (a "staggered reveal"), on the theory that each step recomputing from a fresh layout
+  // would avoid position drift. In practice this created a real multi-tick window during which
+  // `currentList` was only partially updated for a given expand — and if a SECOND, unrelated
+  // expand happened during that window (e.g. expandToPath() walking through several folders in a
+  // row, each with more than one child), its own notifyExpanded() would find its parent missing
+  // from `currentList` (since it hadn't been staggered in yet), fall back to the async
+  // submitNewList() diff path, and that diff's later wholesale currentList replacement would race
+  // with the first expand's still-in-flight per-row inserts — corrupting RecyclerView's item-count
+  // bookkeeping and crashing with "Inconsistency detected. Invalid view holder adapter position".
+  // This wasn't rare: any real folder with 2+ children hit it. Batching the whole insert into one
+  // notifyItemRangeInserted() call removes the multi-tick window entirely, so there's nothing left
+  // for a second expand to race with.
   //
-  // Applied to every expand regardless of child count, so a folder with 2 children
-  // reveals the same way as a folder with 200 — no separate "small folder" fast path
-  // that pops everything in at once anymore.
-  //
-  // NOTE: this is a SEPARATE knob from app:tv_animateDuration / TreeAnimator's
-  // expandDuration. expandDuration controls how long *one row's* fade/scale animation
-  // takes; staggerStepDelay controls how quickly consecutive rows *start* appearing.
-  // Changing one does not change the other.
+  // setStaggerStepDelay() is kept as a no-op for source compatibility; staggering itself is gone.
   private long staggerStepDelay = 0L;
 
+  /**
+   * @deprecated no longer has any effect — staggered (one-row-at-a-time) inserts were removed
+   *     because they were the root cause of a class of RecyclerView "Inconsistency detected"
+   *     crashes when two expansions overlapped (e.g. during {@link
+   *     ir.hanzodev1375.filetreelib.widget.FileTreeView#expandToPath}). Inserts are now always a
+   *     single atomic {@code notifyItemRangeInserted} call.
+   */
+  @Deprecated
   public void setStaggerStepDelay(long ms) {
     this.staggerStepDelay = Math.max(0L, ms);
   }
@@ -107,6 +117,9 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
         }
   );
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  @Nullable private String highlightedNodeId;
+  @Nullable private Runnable pendingHighlightClear;
+  private static final long DEFAULT_HIGHLIGHT_DURATION_MS = 5000L;
 
   public TreeAdapter(@NonNull Context context, @NonNull TreeController controller, @NonNull ThemeManager theme) {
     this.context = context;
@@ -207,6 +220,18 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
      * position — including the sibling below the folder — is always recomputed by
      * RecyclerView from the actual current layout.
      */
+    /**
+     * Inserts a newly-expanded batch of children as one atomic structural change.
+     *
+     * <p>Previously this staggered the insert across several posted Handler callbacks, one row at
+     * a time. That created a multi-tick window where {@code currentList} was only partially
+     * updated — long enough for a second, unrelated expand happening in that window (e.g. {@link
+     * ir.hanzodev1375.filetreelib.widget.FileTreeView#expandToPath} walking through several
+     * multi-child folders back to back) to see its own parent missing from {@code currentList},
+     * fall back to the async {@link #submitNewList} diff path, and race its later wholesale list
+     * replacement against this method's still-in-flight per-row inserts. Doing the whole insert in
+     * one shot removes that window entirely.
+     */
     private void staggerInsert(@NonNull TreeNode parent, @NonNull List<TreeNode> inserted,
                                int insertPos, int parentPos) {
         // Invalidate any in-flight async submitNewList() diff. If one is still
@@ -217,37 +242,9 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
         // and corrupting RecyclerView's internal item-count bookkeeping.
         ++diffRequestId;
 
-        int totalSize = inserted.size();
-
-        currentList.add(insertPos, inserted.get(0));
-        notifyItemRangeInserted(insertPos, 1);
+        currentList.addAll(insertPos, inserted);
+        notifyItemRangeInserted(insertPos, inserted.size());
         notifyItemChanged(parentPos, Boolean.TRUE);
-
-        if (totalSize <= 1) return;
-
-        final String parentId = parent.getId();
-        final int[] nextIndex = {1};
-
-        Runnable job = new Runnable() {
-            @Override
-            public void run() {
-                if (!pendingStaggerJobs.containsKey(parentId)) return;
-
-                int pos = insertPos + nextIndex[0];
-                currentList.add(pos, inserted.get(nextIndex[0]));
-                notifyItemRangeInserted(pos, 1);
-                nextIndex[0]++;
-
-                if (nextIndex[0] < totalSize) {
-                    mainHandler.postDelayed(this, staggerStepDelay);
-                } else {
-                    pendingStaggerJobs.remove(parentId);
-                }
-            }
-        };
-
-        pendingStaggerJobs.put(parentId, job);
-        mainHandler.postDelayed(job, staggerStepDelay);
     }
 
     private boolean cancelPendingStagger(@NonNull String nodeId) {
@@ -267,6 +264,68 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
     }
 
     @NonNull
+    /**
+     * Temporarily highlights {@code nodeId}'s row (a brief background flash) then automatically
+     * clears it after {@code durationMs} — meant to draw the user's eye to a row right after it's
+     * been found and scrolled to programmatically, e.g. via {@link
+     * ir.hanzodev1375.filetreelib.widget.FileTreeView#expandToPath}.
+     *
+     * <p>Calling this again before a previous highlight's timer fires cancels that timer and
+     * clears the old row immediately first — only one row is ever highlighted at a time, and a
+     * highlight can never get stuck lit up.
+     *
+     * @param nodeId the {@link TreeNode#getId()} of the row to flash
+     * @param durationMs how long the highlight stays visible before auto-clearing
+     */
+    public void highlightNode(@NonNull String nodeId, long durationMs) {
+        if (pendingHighlightClear != null) {
+            mainHandler.removeCallbacks(pendingHighlightClear);
+            pendingHighlightClear = null;
+            String previous = highlightedNodeId;
+            highlightedNodeId = null;
+            refreshNodeRow(previous);
+        }
+
+        highlightedNodeId = nodeId;
+        refreshNodeRow(nodeId);
+
+        pendingHighlightClear = () -> {
+            String id = highlightedNodeId;
+            highlightedNodeId = null;
+            pendingHighlightClear = null;
+            refreshNodeRow(id);
+        };
+        mainHandler.postDelayed(pendingHighlightClear, durationMs);
+    }
+
+    /** Same as {@link #highlightNode(String, long)} using a sensible default duration. */
+    public void highlightNode(@NonNull String nodeId) {
+        highlightNode(nodeId, DEFAULT_HIGHLIGHT_DURATION_MS);
+    }
+
+    /** Cancels any in-progress temporary highlight immediately, if one is active. */
+    public void clearHighlight() {
+        if (pendingHighlightClear != null) {
+            mainHandler.removeCallbacks(pendingHighlightClear);
+            pendingHighlightClear = null;
+        }
+        if (highlightedNodeId != null) {
+            String id = highlightedNodeId;
+            highlightedNodeId = null;
+            refreshNodeRow(id);
+        }
+    }
+
+    private void refreshNodeRow(@Nullable String nodeId) {
+        if (nodeId == null) return;
+        for (int i = 0; i < currentList.size(); i++) {
+            if (nodeId.equals(currentList.get(i).getId())) {
+                notifyItemChanged(i, Boolean.TRUE);
+                return;
+            }
+        }
+    }
+
     @Override
     public TreeViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context).inflate(R.layout.item_tree_node, parent, false);
@@ -322,6 +381,11 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
                 isCut,
                 selectionMode
         );
+        holder.setRevealHighlighted(
+                node.getId().equals(highlightedNodeId),
+                theme.getRevealHighlightColor(),
+                node.isSelected(),
+                theme.getSelectedBg());
     }
 
     @Override
@@ -331,6 +395,11 @@ public final class TreeAdapter extends RecyclerView.Adapter<TreeViewHolder> {
             holder.updateSelection(node.isSelected(), theme.getSelectedBg(), selectionMode);
             holder.updateArrow(node, selectionMode);
             holder.updateIcon(context, node, iconProvider);
+            holder.setRevealHighlighted(
+                    node.getId().equals(highlightedNodeId),
+                    theme.getRevealHighlightColor(),
+                    node.isSelected(),
+                    theme.getSelectedBg());
         } else {
             onBindViewHolder(holder, position);
         }

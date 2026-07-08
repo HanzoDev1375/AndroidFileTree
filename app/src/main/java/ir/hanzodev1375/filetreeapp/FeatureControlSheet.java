@@ -475,7 +475,7 @@ public final class FeatureControlSheet {
     addButtonRow(
         activity,
         root,
-        "Expand to path",
+        "Expand to path (auto-highlights on find)",
         v -> {
           String path = pathInput.getText().toString().trim();
           if (TextUtils.isEmpty(path)) {
@@ -487,6 +487,12 @@ public final class FeatureControlSheet {
                   activity, found ? "Revealed: " + path : "Not found: " + path, Toast.LENGTH_SHORT)
               .show();
         });
+
+    addButtonRow(
+        activity,
+        root,
+        "Clear highlight now",
+        v -> view.clearHighlight());
   }
 
   // ---------------------------------------------------------------------------------------

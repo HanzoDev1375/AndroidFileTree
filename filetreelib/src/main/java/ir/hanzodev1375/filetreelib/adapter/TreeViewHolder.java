@@ -192,6 +192,18 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     }
   }
 
+  /**
+   * Applies (or clears) the temporary "reveal" highlight — a brief flash used to draw the user's
+   * eye to a row right after it's been found and scrolled to programmatically (see {@link
+   * ir.hanzodev1375.filetreelib.widget.FileTreeView#highlightNode}). Distinct from selection: once
+   * the highlight clears, the row falls back to its selected/transparent background as normal.
+   */
+  public void setRevealHighlighted(
+      boolean highlighted, int highlightColor, boolean selected, int selectedBg) {
+    itemRoot.setBackgroundColor(
+        highlighted ? highlightColor : (selected ? selectedBg : Color.TRANSPARENT));
+  }
+
   public void updateArrow(@NonNull TreeNode node, boolean selectionMode) {
     if (selectionMode) return;
     if (node.isFile()) {

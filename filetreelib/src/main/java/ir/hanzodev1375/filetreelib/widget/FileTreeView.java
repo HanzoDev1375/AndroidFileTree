@@ -1025,6 +1025,33 @@ public class FileTreeView extends LinearLayout {
   }
 
   /**
+   * Temporarily highlights {@code node}'s row — a brief background flash that fades back
+   * automatically after {@code durationMs}, drawing the user's eye to a row that was just found or
+   * revealed programmatically. {@link #expandToPath} calls this automatically once it locates its
+   * target, but it's also useful standalone (e.g. after a search result tap, or a git-status jump).
+   *
+   * <p>Calling this again before a previous highlight's timer finishes cancels that one
+   * immediately first — only one row is ever highlighted at a time, and a highlight can never get
+   * left stuck on.
+   *
+   * @param node the node to flash
+   * @param durationMs how long the highlight stays visible before auto-clearing
+   */
+  public void highlightNode(@NonNull TreeNode node, long durationMs) {
+    if (adapter != null) adapter.highlightNode(node.getId(), durationMs);
+  }
+
+  /** Same as {@link #highlightNode(TreeNode, long)} using a sensible default duration (1.5s). */
+  public void highlightNode(@NonNull TreeNode node) {
+    if (adapter != null) adapter.highlightNode(node.getId());
+  }
+
+  /** Cancels any in-progress temporary highlight immediately, if one is active. */
+  public void clearHighlight() {
+    if (adapter != null) adapter.clearHighlight();
+  }
+
+  /**
    * Expands every ancestor folder of {@code targetPath} (loading each one from disk first if
    * needed) and reveals/scrolls to it once found — e.g. jumping straight to a file deep in the tree
    * without the user manually tapping through each folder in between.
@@ -1064,6 +1091,11 @@ public class FileTreeView extends LinearLayout {
       @NonNull TreeNode current, @NonNull List<String> segments, int index) {
     if (index >= segments.size()) {
       controller.revealNode(current);
+      // Target fully matched — flash it so it's obvious at a glance which row this is, without
+      // leaving a highlight stuck on if the tree is used further afterward. Not done on the
+      // match==null fallback below, since that's only a partial reveal of an ancestor, not the
+      // actual node the caller asked to find.
+      highlightNode(current);
       return;
     }
 

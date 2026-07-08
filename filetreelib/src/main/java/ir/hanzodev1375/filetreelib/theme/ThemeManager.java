@@ -25,6 +25,7 @@ public final class ThemeManager {
   @ColorInt private int panelColorFilterColor;
   @ColorInt private int panelTextColor;
   @ColorInt private int panelDividerColors;
+  @ColorInt private int revealHighlightColor;
   @NonNull private Context context;
   private final int indentWidthPx;
   private final int iconSizePx;
@@ -64,6 +65,12 @@ public final class ThemeManager {
     panelTextColor = a.getColor(11, get(R.attr.colorPrimary));
     panelDividerColors = a.getColor(12, get(R.attr.colorOnSurface));
     a.recycle();
+
+    // Not backed by a custom XML attr (unlike the colors above) — a translucent tint derived from
+    // the theme's tertiary color, matching how indentWidthPx/iconSizePx are computed rather than
+    // declared. Used for the temporary "reveal" flash after expandToPath() finds a row; override
+    // with setRevealHighlightColor() if a specific color is wanted instead.
+    revealHighlightColor = ColorUtils.setAlphaComponent(get(R.attr.colorTertiary), 180);
 
     float density = context.getResources().getDisplayMetrics().density;
     indentWidthPx = (int) (20 * density);
@@ -212,5 +219,18 @@ public final class ThemeManager {
 
   public void setPanelDividerColors(int panelDividerColors) {
     this.panelDividerColors = panelDividerColors;
+  }
+
+  /**
+   * @return the tint used for the temporary "reveal" highlight flash (see {@link
+   *     ir.hanzodev1375.filetreelib.widget.FileTreeView#highlightNode}).
+   */
+  @ColorInt
+  public int getRevealHighlightColor() {
+    return revealHighlightColor;
+  }
+
+  public void setRevealHighlightColor(int revealHighlightColor) {
+    this.revealHighlightColor = revealHighlightColor;
   }
 }
