@@ -135,10 +135,6 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     if (payload != null) {
       if (payload.getErrorCount() > 0) {
         tvName.setTextColor(theme.getErrorColor());
-      } else if (payload.isGitModified()) {
-        tvName.setTextColor(theme.getGitModifiedColor());
-      } else if ((payload.getGitStatus() & FilePayload.GIT_ADDED) != 0) {
-        tvName.setTextColor(theme.getGitAddedColor());
       } else {
         tvName.setTextColor(theme.getTextColor());
       }
@@ -146,7 +142,9 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
       tvName.setTextColor(theme.getTextColor());
     }
 
-    if (payload != null && payload.getDescription() != null && !payload.getDescription().isEmpty()) {
+    if (payload != null
+        && payload.getDescription() != null
+        && !payload.getDescription().isEmpty()) {
       tvDescription.setText(payload.getDescription());
       tvDescription.setTextColor(theme.getSecondaryTextColor());
       tvDescription.setVisibility(View.VISIBLE);
@@ -155,7 +153,8 @@ public final class TreeViewHolder extends RecyclerView.ViewHolder {
     }
 
     if (payload != null && payload.getBadgeColor() != 0) {
-      ImageViewCompat.setImageTintList(ivIconBadge, ColorStateList.valueOf(payload.getBadgeColor()));
+      ImageViewCompat.setImageTintList(
+          ivIconBadge, ColorStateList.valueOf(payload.getBadgeColor()));
       ivIconBadge.setVisibility(View.VISIBLE);
     } else {
       ivIconBadge.setVisibility(View.GONE);

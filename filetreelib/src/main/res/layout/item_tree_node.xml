@@ -22,32 +22,32 @@
          android:layout_width="20dp"
          android:layout_marginStart="17dp"
          android:id="@+id/tv_arrow_switcher">
-    
+
         <CheckBox
              android:layout_height="20dp"
              android:layout_width="20dp"
-             android:layout_gravity="center"
              android:visibility="gone"
              android:clickable="false"
              android:scaleX="0.8"
              android:scaleY="0.8"
              android:textSize="12sp"
+             android:layout_gravity="center"
              android:id="@+id/tv_checkbox" />
-    
+
         <ImageView
              android:layout_height="16dp"
              android:layout_width="16dp"
-             android:layout_gravity="center"
              android:src="@drawable/ic_filetree_arrow_right"
              android:scaleType="centerInside"
              android:contentDescription="@string/cd_expand_arrow"
+             android:layout_gravity="center"
              android:id="@+id/tv_arrow" />
 
         <ProgressBar
              android:layout_height="14dp"
              android:layout_width="14dp"
-             android:layout_gravity="center"
              android:indeterminate="true"
+             android:layout_gravity="center"
              android:id="@+id/tv_arrow_loading" />
 
     </ViewFlipper>
@@ -70,46 +70,54 @@
         <ImageView
              android:layout_height="7dp"
              android:layout_width="7dp"
-             android:layout_gravity="bottom|end"
-             android:src="@drawable/ic_filetree_badge_dot"
              android:visibility="gone"
+             android:src="@drawable/ic_filetree_badge_dot"
              android:importantForAccessibility="no"
+             android:layout_gravity="bottom|end"
              android:id="@+id/tv_icon_badge" />
 
     </FrameLayout>
 
-    <TextView
+    <LinearLayout
          android:layout_height="wrap_content"
          android:layout_width="0dp"
-         android:textDirection="locale"
-         android:ellipsize="end"
-         android:textSize="13sp"
-         android:maxLines="1"
-         android:layout_weight="2"
-         android:id="@+id/tv_name"
-         android:text="@string/app_name" />
+         android:gravity="center_vertical"
+         android:orientation="horizontal"
+         android:layout_weight="1">
 
-    <TextView
-         android:layout_height="wrap_content"
-         android:layout_width="wrap_content"
-         android:textDirection="locale"
-         android:ellipsize="end"
-         android:singleLine="true"
-         android:maxEms="18"
-         android:textSize="11sp"
-         android:layout_marginStart="4dp"
-         android:visibility="gone"
-         android:id="@+id/tv_description" />
+        <TextView
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             android:textDirection="locale"
+             android:ellipsize="end"
+             android:textSize="13sp"
+             android:maxLines="1"
+             android:id="@+id/tv_name"
+             android:text="@string/app_name" />
 
-    <ImageView
-         android:layout_height="12dp"
-         android:layout_width="12dp"
-         android:visibility="gone"
-         android:src="@drawable/ic_filetree_badge_git_conflict"
-         android:scaleType="centerInside"
-         android:contentDescription="@string/cd_badge_icon"
-         android:layout_marginStart="4dp"
-         android:id="@+id/tv_badge_icon" />
+        <TextView
+             android:layout_height="wrap_content"
+             android:layout_width="wrap_content"
+             android:visibility="gone"
+             android:textDirection="locale"
+             android:ellipsize="end"
+             android:textSize="11sp"
+             android:singleLine="true"
+             android:layout_marginStart="4dp"
+             android:maxEms="18"
+             android:id="@+id/tv_description" />
+
+        <ImageView
+             android:layout_height="12dp"
+             android:layout_width="12dp"
+             android:visibility="gone"
+             android:src="@drawable/ic_filetree_badge_git_conflict"
+             android:scaleType="centerInside"
+             android:contentDescription="@string/cd_badge_icon"
+             android:layout_marginStart="4dp"
+             android:id="@+id/tv_badge_icon" />
+
+    </LinearLayout>
 
     <ImageView
          android:layout_height="18dp"

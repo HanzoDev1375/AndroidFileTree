@@ -110,7 +110,6 @@ public class DefaultIconProvider extends BaseIconProvider {
     if (p.isGitConflicted()) {
       return ContextCompat.getDrawable(context, R.drawable.ic_filetree_badge_git_conflict);
     }
-
     return null;
   }
 }
